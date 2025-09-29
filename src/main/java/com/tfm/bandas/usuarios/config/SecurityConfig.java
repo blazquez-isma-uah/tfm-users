@@ -45,6 +45,13 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Extrae los roles del realm del token JWT de Keycloak (realm_access.roles) y los convierte
+     * en una colección de GrantedAuthority con el prefijo "ROLE_". Esto permite que Spring Security
+     * reconozca y utilice estos roles para la autorización basada en roles.
+     * @param jwt
+     * @return
+     */
     private static Collection<GrantedAuthority> extractRealmRoles(Jwt jwt) {
         var out = new HashSet<SimpleGrantedAuthority>();
         var realm = jwt.getClaimAsMap("realm_access");
