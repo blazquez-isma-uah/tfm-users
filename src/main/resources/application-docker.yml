@@ -41,5 +41,6 @@ management:
         include: health,info
   endpoint:
     health:
+      show-details: always
       probes:
         enabled: true
