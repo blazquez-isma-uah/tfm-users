@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.util.Set;
 
 // Salida: datos públicos de usuario
-public record UserDTO(
+public record UserResponseDTO(
         Long id,
         String username,
         String iamId,
@@ -19,5 +19,6 @@ public record UserDTO(
         String notes,
         String profilePictureUrl,
         boolean active,
+        Set<String> roles,
         Set<String> instruments
 ) {}

@@ -3,10 +3,7 @@ package com.tfm.bandas.usuarios.model.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -20,6 +17,7 @@ import java.util.Set;
         name = "instrument",
         uniqueConstraints = {@UniqueConstraint(columnNames = {"instrument_name", "voice"})}
 )
+@Builder
 public class InstrumentEntity {
 
     @Id

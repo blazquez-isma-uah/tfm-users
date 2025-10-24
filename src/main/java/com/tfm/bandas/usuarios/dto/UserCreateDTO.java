@@ -9,12 +9,13 @@ import java.util.Set;
 
 // Entrada: creación de usuario
 public record UserCreateDTO(
-        @NotBlank String iamId,
+        @NotBlank @Email String email,
         @NotBlank String username,
+        @NotBlank String password,
         @NotBlank String firstName,
         @NotBlank String lastName,
+        @NotBlank String role,
         String secondLastName,
-        @NotBlank @Email String email,
         LocalDate birthDate,
         LocalDate bandJoinDate,
         LocalDate systemSignupDate,

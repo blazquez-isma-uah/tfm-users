@@ -59,3 +59,7 @@ management:
     health:
       probes:
         enabled: true
+
+identity:
+  service:
+    uri: http://localhost:8086

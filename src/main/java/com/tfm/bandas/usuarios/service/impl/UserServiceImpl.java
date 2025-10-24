@@ -1,8 +1,10 @@
 package com.tfm.bandas.usuarios.service.impl;
 
+import com.tfm.bandas.usuarios.client.IdentityClient;
+import com.tfm.bandas.usuarios.dto.KeycloakUserResponse;
 import com.tfm.bandas.usuarios.dto.UserCreateDTO;
-import com.tfm.bandas.usuarios.dto.UserDTO;
-import com.tfm.bandas.usuarios.dto.mapper.UserMapper;
+import com.tfm.bandas.usuarios.dto.UserResponseDTO;
+import com.tfm.bandas.usuarios.dto.mapper.UserProfileMapper;
 import com.tfm.bandas.usuarios.exception.BadRequestException;
 import com.tfm.bandas.usuarios.exception.NotFoundException;
 import com.tfm.bandas.usuarios.model.entity.InstrumentEntity;
@@ -28,67 +30,104 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepo;
     private final InstrumentRepository instrumentRepo;
-    private final UserMapper userMapper;
+    private final UserProfileMapper userProfileMapper;
+    private final IdentityClient identityClient;
 
     @Override
     @Transactional(readOnly = true)
-    public Page<UserDTO> getAllUsers(Pageable pageable) {
+    public Page<UserResponseDTO> getAllUsers(Pageable pageable) {
         return userRepo.findAll(pageable)
-                .map(userMapper::toDTO);
+                .map(userProfileMapper::toDTO);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public UserDTO getUserById(Long id) {
+    public UserResponseDTO getUserById(Long id) {
         return userRepo.findById(id)
-                .map(userMapper::toDTO)
+                .map(userProfileMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("User not found with id: " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public UserDTO getUserByEmail(String email) {
+    public UserResponseDTO getUserByEmail(String email) {
         return userRepo.findByEmail(email)
-                .map(userMapper::toDTO)
+                .map(userProfileMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public UserDTO getUserByUsername(String username) {
+    public UserResponseDTO getUserByUsername(String username) {
         return userRepo.findByUsername(username) // Asumimos que el username es el email
-                .map(userMapper::toDTO)
+                .map(userProfileMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("User not found with username: " + username));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public UserDTO getUserByIamId(String iamId) {
+    public UserResponseDTO getUserByIamId(String iamId) {
         return userRepo.findByIamId(iamId)
-                .map(userMapper::toDTO)
+                .map(userProfileMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("User not found with IAM id: " + iamId));
     }
 
     @Override
     @Transactional
-    public UserDTO createUser(UserCreateDTO dto) {
-        if(userRepo.findByIamId(dto.iamId()).isPresent()) {
-            throw new BadRequestException("User already registered with IAM id: " + dto.iamId());
+    public UserResponseDTO createUser(UserCreateDTO dto) {
+        if(userRepo.existsByUsername(dto.username())) {
+            throw new BadRequestException("User already registered with username: " + dto.username());
+        }
+        if (userRepo.existsByEmail(dto.email())) {
+            throw new BadRequestException("User already registered with email: " + dto.email());
         }
 
-        UserProfileEntity userProfile = new UserProfileEntity();
-        userProfile.setIamId(dto.iamId());
-        userProfile.setSystemSignupDate(dto.systemSignupDate() != null ? dto.systemSignupDate() : LocalDate.now());
-        userProfile.setActive(true);
+        String keycloakId = null;
+        try {
+            KeycloakUserResponse kcUser = identityClient.createUserInKeycloak(userProfileMapper.toKeycloakUserRegisterRequest(dto));
+            keycloakId = kcUser.id();
 
-        setMainUserInfo(dto, userProfile);
+            UserProfileEntity userProfile = UserProfileEntity.builder()
+                    .iamId(keycloakId)
+                    .systemSignupDate(dto.systemSignupDate() != null ? dto.systemSignupDate() : LocalDate.now())
+                    .active(true)
+                    .username(dto.username())
+                    .firstName(dto.firstName())
+                    .lastName(dto.lastName())
+                    .secondLastName(dto.secondLastName())
+                    .email(dto.email())
+                    .phone(dto.phone())
+                    .notes(dto.notes())
+                    .profilePictureUrl(dto.profilePictureUrl())
+                    .birthDate(dto.birthDate())
+                    .bandJoinDate(dto.bandJoinDate())
+                    .build();
 
-        return userMapper.toDTO(userRepo.save(userProfile));
+            if (dto.instrumentIds() != null) {
+                Set<InstrumentEntity> instruments = new HashSet<>(instrumentRepo.findAllById(dto.instrumentIds()));
+                userProfile.setInstruments(instruments);
+            }
+
+            userProfile = userRepo.save(userProfile);
+            return userProfileMapper.toDTO(userProfile);
+
+        } catch (RuntimeException e) {
+            if(keycloakId != null) {
+                // Intentar limpiar el usuario creado en Keycloak
+                try {
+                    identityClient.deleteUserInKeycloak(keycloakId);
+                } catch (Exception ex) {
+                    // Loggear el error pero no hacer nada más
+                    System.err.println("Failed to clean up Keycloak user with id " + keycloakId + ": " + ex.getMessage());
+                }
+            }
+            throw e; // Re-lanzar la excepción original
+        }
     }
 
     @Override
     @Transactional
-    public UserDTO updateUser(Long id, UserCreateDTO dto) {
+    public UserResponseDTO updateUser(Long id, UserCreateDTO dto) {
         UserProfileEntity userProfile = userRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found with id: " + id));
 
@@ -98,7 +137,7 @@ public class UserServiceImpl implements UserService {
         // Email y nombres: se supone que ya han sido cambiados en el IdP y se sincronizan aquí
         setMainUserInfo(dto, userProfile);
 
-        return userMapper.toDTO(userRepo.save(userProfile));
+        return userProfileMapper.toDTO(userRepo.save(userProfile));
     }
 
     private void setMainUserInfo(UserCreateDTO dto, UserProfileEntity userProfile) {
@@ -148,19 +187,19 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDTO updateUserInstruments(Long userId, Set<Long> instrumentIds) {
+    public UserResponseDTO updateUserInstruments(Long userId, Set<Long> instrumentIds) {
         UserProfileEntity userProfile = userRepo.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
         if (instrumentIds != null && !instrumentIds.isEmpty()) {
             Set<InstrumentEntity> instruments = new HashSet<>(instrumentRepo.findAllById(instrumentIds));
             userProfile.setInstruments(instruments);
         }
-        return userMapper.toDTO(userRepo.save(userProfile));
+        return userProfileMapper.toDTO(userRepo.save(userProfile));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<UserDTO> searchUsers(String username, String firstName, String lastName, String email, Boolean active, Long instrumentId, Pageable pageable) {
+    public Page<UserResponseDTO> searchUsers(String username, String firstName, String lastName, String email, Boolean active, Long instrumentId, Pageable pageable) {
         Specification<UserProfileEntity> spec = Specification.allOf(
                 UserSpecifications.usernameContains(username),
                 UserSpecifications.firstNameContains(firstName),
@@ -170,7 +209,7 @@ public class UserServiceImpl implements UserService {
                 UserSpecifications.hasInstrument(instrumentId)
         );
 
-        return userRepo.findAll(spec, pageable).map(userMapper::toDTO);
+        return userRepo.findAll(spec, pageable).map(userProfileMapper::toDTO);
     }
 
 }

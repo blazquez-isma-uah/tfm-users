@@ -44,3 +44,7 @@ management:
       show-details: always
       probes:
         enabled: true
+
+identity:
+  service:
+    uri: ${IDENTITY_SERVICE_URI}
