@@ -75,4 +75,26 @@ public class UserProfileEntity {
     )
     private Set<InstrumentEntity> instruments = new HashSet<>();
 
+    // String informativo con los roles asignados al usuario
+    @Column(name = "role_names")
+    private String roleNames;
+
+    public UserProfileEntity(UserProfileEntity userProfileEntity) {
+        this.id = userProfileEntity.id;
+        this.iamId = userProfileEntity.iamId;
+        this.username = userProfileEntity.username;
+        this.firstName = userProfileEntity.firstName;
+        this.lastName = userProfileEntity.lastName;
+        this.secondLastName = userProfileEntity.secondLastName;
+        this.email = userProfileEntity.email;
+        this.birthDate = userProfileEntity.birthDate;
+        this.bandJoinDate = userProfileEntity.bandJoinDate;
+        this.systemSignupDate = userProfileEntity.systemSignupDate;
+        this.active = userProfileEntity.active;
+        this.phone = userProfileEntity.phone;
+        this.notes = userProfileEntity.notes;
+        this.profilePictureUrl = userProfileEntity.profilePictureUrl;
+        this.instruments = new HashSet<>(userProfileEntity.instruments);
+        this.roleNames = userProfileEntity.roleNames;
+    }
 }

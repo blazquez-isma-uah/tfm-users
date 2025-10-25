@@ -2,6 +2,7 @@ package com.tfm.bandas.usuarios.service.impl;
 
 import com.tfm.bandas.usuarios.client.IdentityClient;
 import com.tfm.bandas.usuarios.dto.KeycloakUserResponse;
+import com.tfm.bandas.usuarios.dto.KeycloakUserUpdateRequest;
 import com.tfm.bandas.usuarios.dto.UserCreateDTO;
 import com.tfm.bandas.usuarios.dto.UserResponseDTO;
 import com.tfm.bandas.usuarios.dto.mapper.UserProfileMapper;
@@ -115,7 +116,7 @@ public class UserServiceImpl implements UserService {
             if(keycloakId != null) {
                 // Intentar limpiar el usuario creado en Keycloak
                 try {
-                    identityClient.deleteUserInKeycloak(keycloakId);
+                    identityClient.deleteUserByIamId(keycloakId);
                 } catch (Exception ex) {
                     // Loggear el error pero no hacer nada más
                     System.err.println("Failed to clean up Keycloak user with id " + keycloakId + ": " + ex.getMessage());
@@ -128,33 +129,59 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponseDTO updateUser(Long id, UserCreateDTO dto) {
-        UserProfileEntity userProfile = userRepo.findById(id)
+        UserProfileEntity userProfileOriginal = userRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found with id: " + id));
 
-        // NO se actualiza iamId → es inmutable
-        // NO se actualiza systemSignupDate → es inmutable
-        // NO se actualiza active → se hace con endpoints específicos
-        // Email y nombres: se supone que ya han sido cambiados en el IdP y se sincronizan aquí
-        setMainUserInfo(dto, userProfile);
+        KeycloakUserResponse kcUpdatedUser = null;
+        try {
+            if (identityClient.userExistsByUsername(dto.username())) {
+                throw new NotFoundException("Associated Keycloak user not found with id: " + userProfileOriginal.getIamId()
+                + " for username: " + dto.username());
+            }
+            KeycloakUserUpdateRequest kcUserUpdate = new KeycloakUserUpdateRequest(
+                    dto.username(),
+                    dto.email(),
+                    dto.firstName(),
+                    dto.lastName() + " " + dto.secondLastName()
+            );
+            kcUpdatedUser = identityClient.updateUserData(userProfileOriginal.getIamId(), kcUserUpdate);
 
-        return userProfileMapper.toDTO(userRepo.save(userProfile));
-    }
-
-    private void setMainUserInfo(UserCreateDTO dto, UserProfileEntity userProfile) {
-        userProfile.setUsername(dto.username());
-        userProfile.setFirstName(dto.firstName());
-        userProfile.setLastName(dto.lastName());
-        userProfile.setSecondLastName(dto.secondLastName());
-        userProfile.setEmail(dto.email());
-        userProfile.setPhone(dto.phone());
-        userProfile.setNotes(dto.notes());
-        userProfile.setProfilePictureUrl(dto.profilePictureUrl());
-        userProfile.setBirthDate(dto.birthDate());
-        userProfile.setBandJoinDate(dto.bandJoinDate());
-
-        if (dto.instrumentIds() != null) {
-            Set<InstrumentEntity> instruments = new HashSet<>(instrumentRepo.findAllById(dto.instrumentIds()));
-            userProfile.setInstruments(instruments);
+            // NO se actualiza id, iamId, systemSignupDate, username → son inmutables
+            // NO se actualiza active, roleNames, instruments → se hace con endpoints específicos
+            UserProfileEntity userProfileToUpdate = new UserProfileEntity(userProfileOriginal);
+            userProfileToUpdate.setFirstName(dto.firstName());
+            userProfileToUpdate.setLastName(dto.lastName());
+            userProfileToUpdate.setSecondLastName(dto.secondLastName());
+            userProfileToUpdate.setPhone(dto.phone());
+            userProfileToUpdate.setNotes(dto.notes());
+            userProfileToUpdate.setProfilePictureUrl(dto.profilePictureUrl());
+            userProfileToUpdate.setBirthDate(dto.birthDate());
+            userProfileToUpdate.setBandJoinDate(dto.bandJoinDate());
+            // Si el email ha cambiado, hay que verificar que no exista otro usuario con ese email
+            if (!userProfileToUpdate.getEmail().equals(dto.email())) {
+                if (userRepo.existsByEmail(dto.email())) {
+                    throw new BadRequestException("Another user is already registered with email: " + dto.email());
+                }
+                userProfileToUpdate.setEmail(dto.email());
+            }
+            return userProfileMapper.toDTO(userRepo.save(userProfileToUpdate));
+        } catch (RuntimeException e) {
+            if (kcUpdatedUser != null) {
+                // Intentar revertir los cambios en Keycloak
+                try {
+                    KeycloakUserUpdateRequest kcUserRevert = new KeycloakUserUpdateRequest(
+                            userProfileOriginal.getUsername(),
+                            userProfileOriginal.getEmail(),
+                            userProfileOriginal.getFirstName(),
+                            userProfileOriginal.getLastName() + " " + userProfileOriginal.getSecondLastName()
+                    );
+                    identityClient.updateUserData(userProfileOriginal.getIamId(), kcUserRevert);
+                } catch (Exception ex) {
+                    // Loggear el error pero no hacer nada más
+                    System.err.println("Failed to revert Keycloak user with id " + userProfileOriginal.getIamId() + ": " + ex.getMessage());
+                }
+            }
+            throw e; // Re-lanzar la excepción original
         }
     }
 
@@ -163,6 +190,14 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long id) {
         if (!userRepo.existsById(id)) {
             throw new NotFoundException("User not found with id " + id);
+        }
+        UserProfileEntity userProfileToDelete = userRepo.findById(id).orElse(null);
+        if (userProfileToDelete != null) {
+            try {
+                identityClient.deleteUserByIamId(userProfileToDelete.getIamId());
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to delete associated Keycloak user with id: " + userProfileToDelete.getIamId(), e);
+            }
         }
         userRepo.deleteById(id);
     }

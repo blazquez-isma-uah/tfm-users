@@ -14,7 +14,6 @@ public record UserCreateDTO(
         @NotBlank String password,
         @NotBlank String firstName,
         @NotBlank String lastName,
-        @NotBlank String role,
         String secondLastName,
         LocalDate birthDate,
         LocalDate bandJoinDate,
@@ -22,6 +21,7 @@ public record UserCreateDTO(
         @Nullable String phone,
         @Nullable String notes,
         @Nullable String profilePictureUrl,
-        Set<Long> instrumentIds
+        Set<Long> instrumentIds,
+        Set<String> roles
 ) {}
 

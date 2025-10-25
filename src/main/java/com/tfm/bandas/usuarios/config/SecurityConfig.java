@@ -1,5 +1,6 @@
 package com.tfm.bandas.usuarios.config;
 
+import com.tfm.bandas.usuarios.utils.Constants;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -19,6 +20,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
+import static com.tfm.bandas.usuarios.utils.Constants.PATTERNS_PERMITED;
+
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -32,7 +35,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsCfg()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(PATTERNS_PERMITED).permitAll()
                         // Ajusta según tu API:
                         .requestMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("ADMIN","MUSICIAN")
                         .requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
@@ -54,8 +57,8 @@ public class SecurityConfig {
      */
     private static Collection<GrantedAuthority> extractRealmRoles(Jwt jwt) {
         var out = new HashSet<SimpleGrantedAuthority>();
-        var realm = jwt.getClaimAsMap("realm_access");
-        if (realm != null && realm.get("roles") instanceof List<?> roles) {
+        var realm = jwt.getClaimAsMap(Constants.REALM_ACCESS);
+        if (realm != null && realm.get(Constants.ROLES) instanceof List<?> roles) {
             for (Object r : roles) out.add(new SimpleGrantedAuthority("ROLE_" + r.toString()));
         }
         return new HashSet<GrantedAuthority>(out);
