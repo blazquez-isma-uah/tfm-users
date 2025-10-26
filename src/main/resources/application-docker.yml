@@ -45,6 +45,13 @@ management:
       probes:
         enabled: true
 
+logging:
+  level:
+    org.springdoc: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
+
 identity:
   service:
     uri: ${IDENTITY_SERVICE_URI}

@@ -1,5 +1,6 @@
 package com.tfm.bandas.usuarios.client;
 
+import com.tfm.bandas.usuarios.config.FeignSecurityConfig;
 import com.tfm.bandas.usuarios.dto.*; // <-- crea/ajusta estos DTOs espejo de identity
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,8 @@ import static com.tfm.bandas.usuarios.utils.Constants.URL_ROLES;
 
 @FeignClient(
         name = "identityClient",
-        url = "${identity.service.url}"
+        url = "${identity.service.uri}",
+        configuration = FeignSecurityConfig.class
 )
 public interface IdentityClient {
     // =========================
