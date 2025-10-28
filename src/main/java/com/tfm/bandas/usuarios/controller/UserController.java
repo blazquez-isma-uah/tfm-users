@@ -2,6 +2,7 @@ package com.tfm.bandas.usuarios.controller;
 
 import com.tfm.bandas.usuarios.dto.UserCreateDTO;
 import com.tfm.bandas.usuarios.dto.UserResponseDTO;
+import com.tfm.bandas.usuarios.dto.UserUpdateDTO;
 import com.tfm.bandas.usuarios.service.UserService;
 import com.tfm.bandas.usuarios.utils.PaginatedResponse;
 import jakarta.validation.Valid;
@@ -82,7 +83,7 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public UserResponseDTO updateUser(@PathVariable Long id, @RequestBody @Valid UserCreateDTO dto) {
+    public UserResponseDTO updateUser(@PathVariable Long id, @RequestBody @Valid UserUpdateDTO dto) {
         logger.info("Calling updateUser with id: {} and dto: {}", id, dto);
         UserResponseDTO response = userService.updateUser(id, dto);
         logger.info("updateUser returning: {}", response);
@@ -128,6 +129,7 @@ public class UserController {
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) String secondLastName,
             @RequestParam(required = false) String email,
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) Long instrumentId,
@@ -136,7 +138,7 @@ public class UserController {
         logger.info("Calling searchUsers with username: {}, firstName: {}, lastName: {}, email: {}, active: {}, instrumentId: {}, pageable: {}",
                 username, firstName, lastName, email, active, instrumentId, pageable);
         PaginatedResponse<UserResponseDTO> response = PaginatedResponse.from(
-                userService.searchUsers(username, firstName, lastName, email, active, instrumentId, pageable)
+                userService.searchUsers(username, firstName, lastName, secondLastName, email, active, instrumentId, pageable)
         );
         logger.info("searchUsers returning: {}", response);
         return response;

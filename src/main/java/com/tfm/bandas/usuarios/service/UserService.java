@@ -2,6 +2,7 @@ package com.tfm.bandas.usuarios.service;
 
 import com.tfm.bandas.usuarios.dto.UserCreateDTO;
 import com.tfm.bandas.usuarios.dto.UserResponseDTO;
+import com.tfm.bandas.usuarios.dto.UserUpdateDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -14,10 +15,11 @@ public interface UserService {
     UserResponseDTO getUserByUsername(String username);
     UserResponseDTO getUserByIamId(String iamId);
     UserResponseDTO createUser(UserCreateDTO dto);
-    UserResponseDTO updateUser(Long id, UserCreateDTO dto);
+    UserResponseDTO updateUser(Long id, UserUpdateDTO dto);
     void deleteUser(Long id);
     void disableUser(Long id);
     void enableUser(Long id);
     UserResponseDTO updateUserInstruments(Long userId, Set<Long> instrumentIds);
-    Page<UserResponseDTO> searchUsers(String username, String firstName, String lastName, String email, Boolean active, Long instrumentId, Pageable pageable);
+    Page<UserResponseDTO> searchUsers(String username, String firstName, String lastName, String secondLastName,
+                                      String email, Boolean active, Long instrumentId, Pageable pageable);
 }

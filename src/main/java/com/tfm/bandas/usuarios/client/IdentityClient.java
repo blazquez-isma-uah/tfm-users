@@ -87,8 +87,8 @@ public interface IdentityClient {
     List<KeycloakRoleResponse> listUserRoles(@PathVariable("id") String userId);
 
     @PostMapping(URL_ROLES + "/user/{id}/{roleName}")
-    void assignRealmRole(@PathVariable("id") String userId, @PathVariable("roleName") String roleName);
+    void assignRoleToUser(@PathVariable("id") String userId, @PathVariable("roleName") String roleName);
 
     @DeleteMapping(URL_ROLES + "/user/{id}/{roleName}")
-    void removeRealmRole(@PathVariable("id") String userId, @PathVariable("roleName") String roleName);
+    void removeRoleFromUser(@PathVariable("id") String userId, @PathVariable("roleName") String roleName);
 }

@@ -3,6 +3,8 @@ package com.tfm.bandas.usuarios.service.impl;
 import com.tfm.bandas.usuarios.client.IdentityClient;
 import com.tfm.bandas.usuarios.dto.KeycloakRoleRegisterRequest;
 import com.tfm.bandas.usuarios.dto.KeycloakRoleResponse;
+import com.tfm.bandas.usuarios.dto.UserResponseDTO;
+import com.tfm.bandas.usuarios.dto.mapper.UserProfileMapper;
 import com.tfm.bandas.usuarios.model.entity.UserProfileEntity;
 import com.tfm.bandas.usuarios.model.repository.UserRepository;
 import com.tfm.bandas.usuarios.service.RoleService;
@@ -19,6 +21,7 @@ public class RoleServiceImpl implements RoleService {
 
     private final IdentityClient identityClient;
     private final UserRepository userRepo;
+    private final UserProfileMapper userProfileMapper;
 
     @Override
     public List<KeycloakRoleResponse> getAllRoles() {
@@ -47,16 +50,27 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     public List<KeycloakRoleResponse> listUserRoles(String userId) {
-        return identityClient.listUserRoles(userId);
+        String iamId = userRepo.findById(Long.parseLong(userId))
+                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId))
+                .getIamId();
+        return identityClient.listUserRoles(iamId);
+    }
+
+    @Override
+    public List<KeycloakRoleResponse> listUserRolesByUsername(String username) {
+        String iamId = userRepo.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with username: " + username))
+                .getIamId();
+        return identityClient.listUserRoles(iamId);
     }
 
     @Override
     @Transactional
-    public void assignRealmRole(Long userId, String roleName) {
+    public UserResponseDTO assignRoleToUser(Long userId, String roleName) {
         UserProfileEntity user = userRepo.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
-        identityClient.assignRealmRole(user.getIamId(), roleName);
+        identityClient.assignRoleToUser(user.getIamId(), roleName);
 
         try {
             // Comprobar si tiene ese rol en role_names que es una lista de roles separados por coma y añadirlo si no lo tiene
@@ -69,20 +83,21 @@ public class RoleServiceImpl implements RoleService {
                     user.setRoleNames(roleNames + "," + roleName);
                 }
             }
-            userRepo.save(user);
+            UserProfileEntity userProfile = userRepo.save(user);
+            return userProfileMapper.toDTO(userProfile);
         } catch (Exception e) {
             // Si se produce un error en la base de datos, desasignar el rol en Keycloak
-            identityClient.removeRealmRole(user.getIamId(), roleName);
+            identityClient.removeRoleFromUser(user.getIamId(), roleName);
             throw e;
         }
 
     }
 
     @Override
-    public void removeRealmRole(Long userId, String roleName) {
+    public UserResponseDTO removeRoleFromUser(Long userId, String roleName) {
         UserProfileEntity user = userRepo.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
-        identityClient.removeRealmRole(user.getIamId(), roleName);
+        identityClient.removeRoleFromUser(user.getIamId(), roleName);
         try {
             // Quitar el rol de role_names
             String roleNames = user.getRoleNames();
@@ -91,12 +106,14 @@ public class RoleServiceImpl implements RoleService {
                 if (rolesList.contains(roleName)) {
                     rolesList.remove(roleName);
                     user.setRoleNames(String.join(",", rolesList));
-                    userRepo.save(user);
+                    UserProfileEntity userProfile = userRepo.save(user);
+                    return userProfileMapper.toDTO(userProfile);
                 }
             }
+            return userProfileMapper.toDTO(user);
         } catch (RuntimeException e) {
             // Si se produce un error en la base de datos, reasignar el rol en Keycloak
-            identityClient.assignRealmRole(user.getIamId(), roleName);
+            identityClient.assignRoleToUser(user.getIamId(), roleName);
             throw e;
         }
     }

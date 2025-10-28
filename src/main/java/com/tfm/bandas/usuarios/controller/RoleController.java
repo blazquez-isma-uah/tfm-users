@@ -2,6 +2,7 @@ package com.tfm.bandas.usuarios.controller;
 
 import com.tfm.bandas.usuarios.dto.KeycloakRoleRegisterRequest;
 import com.tfm.bandas.usuarios.dto.KeycloakRoleResponse;
+import com.tfm.bandas.usuarios.dto.UserResponseDTO;
 import com.tfm.bandas.usuarios.service.RoleService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -49,10 +50,10 @@ public class RoleController {
         return response;
     }
 
-    @GetMapping("/name/{name}")
-    public KeycloakRoleResponse getRoleByName(@PathVariable String name) {
-        logger.info("Calling getRoleByName with name: {}", name);
-        KeycloakRoleResponse response = roleService.getRoleByName(name);
+    @GetMapping("/name/{roleName}")
+    public KeycloakRoleResponse getRoleByName(@PathVariable String roleName) {
+        logger.info("Calling getRoleByName with roleName: {}", roleName);
+        KeycloakRoleResponse response = roleService.getRoleByName(roleName);
         logger.info("getRoleByName returning: {}", response);
         return response;
     }
@@ -65,17 +66,28 @@ public class RoleController {
         return response;
     }
 
-    @PostMapping("/user/{userId}/{role}")
-    public void assignRealmRole(@PathVariable Long userId, @PathVariable String role) {
-        logger.info("Calling assignRealmRole with userId: {}, role: {}", userId, role);
-        roleService.assignRealmRole(userId, role);
-        logger.info("assignRealmRole completed for userId: {}, role: {}", userId, role);
+    // listUserRoles by Username
+    @GetMapping("/user/username/{username}")
+    public List<KeycloakRoleResponse> listUserRolesByUsername(@PathVariable String username) {
+        logger.info("Calling listUserRolesByUsername with username: {}", username);
+        List<KeycloakRoleResponse> response = roleService.listUserRolesByUsername(username);
+        logger.info("listUserRolesByUsername returning: {}", response);
+        return response;
     }
 
-    @DeleteMapping("/user/{userId}/{role}")
-    public void removeRealmRole(@PathVariable Long userId, @PathVariable String role) {
-        logger.info("Calling removeRealmRole with userId: {}, role: {}", userId, role);
-        roleService.removeRealmRole(userId, role);
-        logger.info("removeRealmRole completed for userId: {}, role: {}", userId, role);
+    @PostMapping("/user/{userId}/{roleName}")
+    public UserResponseDTO assignRoleToUser(@PathVariable Long userId, @PathVariable String roleName) {
+        logger.info("Calling assignRealmRole with userId: {}, roleName: {}", userId, roleName);
+        UserResponseDTO response = roleService.assignRoleToUser(userId, roleName);
+        logger.info("assignRealmRole returning: {}", response);
+        return response;
+    }
+
+    @DeleteMapping("/user/{userId}/{roleName}")
+    public UserResponseDTO removeRoleFromUser(@PathVariable Long userId, @PathVariable String roleName) {
+        logger.info("Calling removeRealmRole with userId: {}, roleName: {}", userId, roleName);
+        UserResponseDTO response = roleService.removeRoleFromUser(userId, roleName);
+        logger.info("removeRealmRole returning: {}", response);
+        return response;
     }
 }

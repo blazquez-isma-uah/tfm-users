@@ -2,6 +2,8 @@ package com.tfm.bandas.usuarios.service;
 
 import com.tfm.bandas.usuarios.dto.KeycloakRoleRegisterRequest;
 import com.tfm.bandas.usuarios.dto.KeycloakRoleResponse;
+import com.tfm.bandas.usuarios.dto.UserResponseDTO;
+
 import java.util.List;
 
 public interface RoleService {
@@ -11,6 +13,7 @@ public interface RoleService {
     KeycloakRoleResponse getRoleById(String id);
     KeycloakRoleResponse getRoleByName(String name);
     List<KeycloakRoleResponse> listUserRoles(String userId);
-    void assignRealmRole(Long userId, String roleName);
-    void removeRealmRole(Long userId, String roleName);
+    List<KeycloakRoleResponse> listUserRolesByUsername(String username);
+    UserResponseDTO assignRoleToUser(Long userId, String roleName);
+    UserResponseDTO removeRoleFromUser(Long userId, String roleName);
 }

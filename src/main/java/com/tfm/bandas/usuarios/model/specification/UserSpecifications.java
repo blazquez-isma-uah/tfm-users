@@ -22,6 +22,11 @@ public class UserSpecifications {
                 lastName == null ? null : cb.like(cb.lower(root.get("lastName")), "%" + lastName.toLowerCase() + "%");
     }
 
+    public static Specification<UserProfileEntity> secondLastNameContains(String secondLastName) {
+        return (root, query, cb) ->
+                secondLastName == null ? null : cb.like(cb.lower(root.get("secondLastName")), "%" + secondLastName.toLowerCase() + "%");
+    }
+
     public static Specification<UserProfileEntity> emailContains(String email) {
         return (root, query, cb) ->
                 email == null ? null : cb.like(cb.lower(root.get("email")), "%" + email.toLowerCase() + "%");

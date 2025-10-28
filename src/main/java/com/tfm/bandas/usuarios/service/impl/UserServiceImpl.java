@@ -1,10 +1,7 @@
 package com.tfm.bandas.usuarios.service.impl;
 
 import com.tfm.bandas.usuarios.client.IdentityClient;
-import com.tfm.bandas.usuarios.dto.KeycloakUserResponse;
-import com.tfm.bandas.usuarios.dto.KeycloakUserUpdateRequest;
-import com.tfm.bandas.usuarios.dto.UserCreateDTO;
-import com.tfm.bandas.usuarios.dto.UserResponseDTO;
+import com.tfm.bandas.usuarios.dto.*;
 import com.tfm.bandas.usuarios.dto.mapper.UserProfileMapper;
 import com.tfm.bandas.usuarios.exception.BadRequestException;
 import com.tfm.bandas.usuarios.exception.NotFoundException;
@@ -13,6 +10,7 @@ import com.tfm.bandas.usuarios.model.entity.UserProfileEntity;
 import com.tfm.bandas.usuarios.model.repository.InstrumentRepository;
 import com.tfm.bandas.usuarios.model.repository.UserRepository;
 import com.tfm.bandas.usuarios.model.specification.UserSpecifications;
+import com.tfm.bandas.usuarios.service.RoleService;
 import com.tfm.bandas.usuarios.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -33,6 +31,7 @@ public class UserServiceImpl implements UserService {
     private final InstrumentRepository instrumentRepo;
     private final UserProfileMapper userProfileMapper;
     private final IdentityClient identityClient;
+    private final RoleService roleService;
 
     @Override
     @Transactional(readOnly = true)
@@ -87,7 +86,6 @@ public class UserServiceImpl implements UserService {
         try {
             KeycloakUserResponse kcUser = identityClient.createUserInKeycloak(userProfileMapper.toKeycloakUserRegisterRequest(dto));
             keycloakId = kcUser.id();
-
             UserProfileEntity userProfile = UserProfileEntity.builder()
                     .iamId(keycloakId)
                     .systemSignupDate(dto.systemSignupDate() != null ? dto.systemSignupDate() : LocalDate.now())
@@ -108,9 +106,16 @@ public class UserServiceImpl implements UserService {
                 Set<InstrumentEntity> instruments = new HashSet<>(instrumentRepo.findAllById(dto.instrumentIds()));
                 userProfile.setInstruments(instruments);
             }
-
             userProfile = userRepo.save(userProfile);
-            return userProfileMapper.toDTO(userProfile);
+            UserResponseDTO createdUserDTO = userProfileMapper.toDTO(userProfile);
+
+            // Asignar roles en Keycloak y en base de datos
+            if (dto.roles() != null && !dto.roles().isEmpty()) {
+                for(String roleName : dto.roles()) {
+                    createdUserDTO = roleService.assignRoleToUser(userProfile.getId(), roleName);
+                }
+            }
+            return createdUserDTO;
 
         } catch (RuntimeException e) {
             if(keycloakId != null) {
@@ -128,42 +133,27 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponseDTO updateUser(Long id, UserCreateDTO dto) {
+    public UserResponseDTO updateUser(Long id, UserUpdateDTO dto) {
         UserProfileEntity userProfileOriginal = userRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("User not found with id: " + id));
 
+        // Si el email ha cambiado, hay que verificar que no exista otro usuario con ese email
+        if (!userProfileOriginal.getEmail().equals(dto.email())
+                && userRepo.existsByEmail(dto.email())) {
+            throw new BadRequestException("Another user is already registered with email: " + dto.email());
+        }
+
         KeycloakUserResponse kcUpdatedUser = null;
         try {
-            if (identityClient.userExistsByUsername(dto.username())) {
-                throw new NotFoundException("Associated Keycloak user not found with id: " + userProfileOriginal.getIamId()
-                + " for username: " + dto.username());
-            }
             KeycloakUserUpdateRequest kcUserUpdate = new KeycloakUserUpdateRequest(
-                    dto.username(),
+                    userProfileOriginal.getUsername(),
                     dto.email(),
                     dto.firstName(),
                     dto.lastName() + " " + dto.secondLastName()
             );
             kcUpdatedUser = identityClient.updateUserData(userProfileOriginal.getIamId(), kcUserUpdate);
 
-            // NO se actualiza id, iamId, systemSignupDate, username → son inmutables
-            // NO se actualiza active, roleNames, instruments → se hace con endpoints específicos
-            UserProfileEntity userProfileToUpdate = new UserProfileEntity(userProfileOriginal);
-            userProfileToUpdate.setFirstName(dto.firstName());
-            userProfileToUpdate.setLastName(dto.lastName());
-            userProfileToUpdate.setSecondLastName(dto.secondLastName());
-            userProfileToUpdate.setPhone(dto.phone());
-            userProfileToUpdate.setNotes(dto.notes());
-            userProfileToUpdate.setProfilePictureUrl(dto.profilePictureUrl());
-            userProfileToUpdate.setBirthDate(dto.birthDate());
-            userProfileToUpdate.setBandJoinDate(dto.bandJoinDate());
-            // Si el email ha cambiado, hay que verificar que no exista otro usuario con ese email
-            if (!userProfileToUpdate.getEmail().equals(dto.email())) {
-                if (userRepo.existsByEmail(dto.email())) {
-                    throw new BadRequestException("Another user is already registered with email: " + dto.email());
-                }
-                userProfileToUpdate.setEmail(dto.email());
-            }
+            UserProfileEntity userProfileToUpdate = updateUserProfileData(dto, userProfileOriginal);
             return userProfileMapper.toDTO(userRepo.save(userProfileToUpdate));
         } catch (RuntimeException e) {
             if (kcUpdatedUser != null) {
@@ -183,6 +173,22 @@ public class UserServiceImpl implements UserService {
             }
             throw e; // Re-lanzar la excepción original
         }
+    }
+
+    private UserProfileEntity updateUserProfileData(UserUpdateDTO dto, UserProfileEntity userProfileOriginal) {
+        // NO se actualiza id, iamId, systemSignupDate, username → son inmutables
+        // NO se actualiza active, roleNames, instruments → se hace con endpoints específicos
+        UserProfileEntity userProfileToUpdate = new UserProfileEntity(userProfileOriginal);
+        userProfileToUpdate.setFirstName(dto.firstName());
+        userProfileToUpdate.setLastName(dto.lastName());
+        userProfileToUpdate.setSecondLastName(dto.secondLastName());
+        userProfileToUpdate.setPhone(dto.phone());
+        userProfileToUpdate.setNotes(dto.notes());
+        userProfileToUpdate.setProfilePictureUrl(dto.profilePictureUrl());
+        userProfileToUpdate.setBirthDate(dto.birthDate());
+        userProfileToUpdate.setBandJoinDate(dto.bandJoinDate());
+        userProfileToUpdate.setEmail(dto.email());
+        return userProfileToUpdate;
     }
 
     @Override
@@ -225,8 +231,10 @@ public class UserServiceImpl implements UserService {
     public UserResponseDTO updateUserInstruments(Long userId, Set<Long> instrumentIds) {
         UserProfileEntity userProfile = userRepo.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
-        if (instrumentIds != null && !instrumentIds.isEmpty()) {
-            Set<InstrumentEntity> instruments = new HashSet<>(instrumentRepo.findAllById(instrumentIds));
+        if (instrumentIds != null) {
+            Set<InstrumentEntity> instruments =
+                    instrumentIds.isEmpty() ? new HashSet<>() :
+                    new HashSet<>(instrumentRepo.findAllById(instrumentIds));
             userProfile.setInstruments(instruments);
         }
         return userProfileMapper.toDTO(userRepo.save(userProfile));
@@ -234,11 +242,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<UserResponseDTO> searchUsers(String username, String firstName, String lastName, String email, Boolean active, Long instrumentId, Pageable pageable) {
+    public Page<UserResponseDTO> searchUsers(String username, String firstName, String lastName, String secondLastName,
+                                             String email, Boolean active, Long instrumentId, Pageable pageable) {
         Specification<UserProfileEntity> spec = Specification.allOf(
                 UserSpecifications.usernameContains(username),
                 UserSpecifications.firstNameContains(firstName),
                 UserSpecifications.lastNameContains(lastName),
+                UserSpecifications.secondLastNameContains(secondLastName),
                 UserSpecifications.emailContains(email),
                 UserSpecifications.activeIs(active),
                 UserSpecifications.hasInstrument(instrumentId)
