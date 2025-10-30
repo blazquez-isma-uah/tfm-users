@@ -12,6 +12,5 @@ public interface InstrumentRepository extends JpaRepository<InstrumentEntity, Lo
         JpaSpecificationExecutor<InstrumentEntity> {
 
     Optional<InstrumentEntity> findByInstrumentNameAndVoice(String instrumentName, String voice);
-
     Page<InstrumentEntity> findByInstrumentNameContainingIgnoreCase(String instrumentName, Pageable pageable);
 }

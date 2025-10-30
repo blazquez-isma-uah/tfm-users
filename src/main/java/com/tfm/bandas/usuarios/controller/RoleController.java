@@ -42,10 +42,10 @@ public class RoleController {
         logger.info("deleteRole completed for roleName: {}", roleName);
     }
 
-    @GetMapping("/{id}")
-    public KeycloakRoleResponse getRoleById(@PathVariable String id) {
-        logger.info("Calling getRoleById with id: {}", id);
-        KeycloakRoleResponse response = roleService.getRoleById(id);
+    @GetMapping("/{roleId}")
+    public KeycloakRoleResponse getRoleById(@PathVariable String roleId) {
+        logger.info("Calling getRoleById with roleId: {}", roleId);
+        KeycloakRoleResponse response = roleService.getRoleById(roleId);
         logger.info("getRoleById returning: {}", response);
         return response;
     }
@@ -72,6 +72,14 @@ public class RoleController {
         logger.info("Calling listUserRolesByUsername with username: {}", username);
         List<KeycloakRoleResponse> response = roleService.listUserRolesByUsername(username);
         logger.info("listUserRolesByUsername returning: {}", response);
+        return response;
+    }
+
+    @PutMapping("/user/{userId}")
+    public UserResponseDTO updateUserRoles(@PathVariable Long userId, @RequestBody List<String> roleNames) {
+        logger.info("Calling updateUserRoles with userId: {} and roleNames: {}", userId, roleNames);
+        UserResponseDTO response = roleService.updateUserRoles(userId, roleNames);
+        logger.info("updateUserRoles returning: {}", response);
         return response;
     }
 

@@ -10,10 +10,11 @@ public interface RoleService {
     List<KeycloakRoleResponse> getAllRoles();
     KeycloakRoleResponse createRole(KeycloakRoleRegisterRequest role);
     void deleteRole(String roleName);
-    KeycloakRoleResponse getRoleById(String id);
-    KeycloakRoleResponse getRoleByName(String name);
+    KeycloakRoleResponse getRoleById(String roleId);
+    KeycloakRoleResponse getRoleByName(String roleName);
     List<KeycloakRoleResponse> listUserRoles(String userId);
     List<KeycloakRoleResponse> listUserRolesByUsername(String username);
     UserResponseDTO assignRoleToUser(Long userId, String roleName);
     UserResponseDTO removeRoleFromUser(Long userId, String roleName);
+    UserResponseDTO updateUserRoles(Long userId, List<String> roleNames);
 }

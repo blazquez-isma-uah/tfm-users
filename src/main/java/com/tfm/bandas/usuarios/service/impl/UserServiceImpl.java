@@ -42,10 +42,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserResponseDTO getUserById(Long id) {
-        return userRepo.findById(id)
-                .map(userProfileMapper::toDTO)
-                .orElseThrow(() -> new NotFoundException("User not found with id: " + id));
+    public UserResponseDTO getUserById(Long userId) {
+        return userProfileMapper.toDTO(findUserOrThrow(userId));
     }
 
     @Override
@@ -69,7 +67,7 @@ public class UserServiceImpl implements UserService {
     public UserResponseDTO getUserByIamId(String iamId) {
         return userRepo.findByIamId(iamId)
                 .map(userProfileMapper::toDTO)
-                .orElseThrow(() -> new NotFoundException("User not found with IAM id: " + iamId));
+                .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
     }
 
     @Override
@@ -124,7 +122,7 @@ public class UserServiceImpl implements UserService {
                     identityClient.deleteUserByIamId(keycloakId);
                 } catch (Exception ex) {
                     // Loggear el error pero no hacer nada más
-                    System.err.println("Failed to clean up Keycloak user with id " + keycloakId + ": " + ex.getMessage());
+                    System.err.println("Failed to clean up Keycloak user with IAM ID " + keycloakId + ": " + ex.getMessage());
                 }
             }
             throw e; // Re-lanzar la excepción original
@@ -133,9 +131,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponseDTO updateUser(Long id, UserUpdateDTO dto) {
-        UserProfileEntity userProfileOriginal = userRepo.findById(id)
-                .orElseThrow(() -> new NotFoundException("User not found with id: " + id));
+    public UserResponseDTO updateUser(Long userId, UserUpdateDTO dto) {
+        UserProfileEntity userProfileOriginal = findUserOrThrow(userId);
 
         // Si el email ha cambiado, hay que verificar que no exista otro usuario con ese email
         if (!userProfileOriginal.getEmail().equals(dto.email())
@@ -168,7 +165,7 @@ public class UserServiceImpl implements UserService {
                     identityClient.updateUserData(userProfileOriginal.getIamId(), kcUserRevert);
                 } catch (Exception ex) {
                     // Loggear el error pero no hacer nada más
-                    System.err.println("Failed to revert Keycloak user with id " + userProfileOriginal.getIamId() + ": " + ex.getMessage());
+                    System.err.println("Failed to revert Keycloak user with IAM ID " + userProfileOriginal.getIamId() + ": " + ex.getMessage());
                 }
             }
             throw e; // Re-lanzar la excepción original
@@ -193,44 +190,58 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void deleteUser(Long id) {
-        if (!userRepo.existsById(id)) {
-            throw new NotFoundException("User not found with id " + id);
-        }
-        UserProfileEntity userProfileToDelete = userRepo.findById(id).orElse(null);
+    public void deleteUser(Long userId) {
+        UserProfileEntity userProfileToDelete = findUserOrThrow(userId);
         if (userProfileToDelete != null) {
             try {
                 identityClient.deleteUserByIamId(userProfileToDelete.getIamId());
             } catch (Exception e) {
-                throw new RuntimeException("Failed to delete associated Keycloak user with id: " + userProfileToDelete.getIamId(), e);
+                throw new RuntimeException("Failed to delete associated Keycloak user with IAM ID: " + userProfileToDelete.getIamId(), e);
             }
         }
-        userRepo.deleteById(id);
+        userRepo.deleteById(userId);
     }
 
     @Override
     @Transactional
-    public void disableUser(Long id) {
-        UserProfileEntity user = userRepo.findById(id)
-                .orElseThrow(() -> new NotFoundException("User not found with id " + id));
+    public void disableUser(Long userId) {
+        UserProfileEntity user = findUserOrThrow(userId);
         user.setActive(false);
         userRepo.save(user);
     }
 
     @Override
     @Transactional
-    public void enableUser(Long id) {
-        UserProfileEntity user = userRepo.findById(id)
-                .orElseThrow(() -> new NotFoundException("User not found with id " + id));
+    public void enableUser(Long userId) {
+        UserProfileEntity user = findUserOrThrow(userId);
         user.setActive(true);
         userRepo.save(user);
     }
 
     @Override
     @Transactional
+    public UserResponseDTO assignInstrumentToUser(Long userId, Long instrumentId) {
+        UserProfileEntity userProfile = findUserOrThrow(userId);
+        InstrumentEntity instrument = instrumentRepo.findById(instrumentId)
+                .orElseThrow(() -> new NotFoundException("Instrument not found with id " + instrumentId));
+        userProfile.getInstruments().add(instrument);
+        return userProfileMapper.toDTO(userRepo.save(userProfile));
+    }
+
+    @Override
+    @Transactional
+    public UserResponseDTO removeInstrumentFromUser(Long userId, Long instrumentId) {
+        UserProfileEntity userProfile = findUserOrThrow(userId);
+        InstrumentEntity instrument = instrumentRepo.findById(instrumentId)
+                .orElseThrow(() -> new NotFoundException("Instrument not found with id " + instrumentId));
+        userProfile.getInstruments().remove(instrument);
+        return userProfileMapper.toDTO(userRepo.save(userProfile));
+    }
+
+    @Override
+    @Transactional
     public UserResponseDTO updateUserInstruments(Long userId, Set<Long> instrumentIds) {
-        UserProfileEntity userProfile = userRepo.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found with id: " + userId));
+        UserProfileEntity userProfile = findUserOrThrow(userId);
         if (instrumentIds != null) {
             Set<InstrumentEntity> instruments =
                     instrumentIds.isEmpty() ? new HashSet<>() :
@@ -255,6 +266,11 @@ public class UserServiceImpl implements UserService {
         );
 
         return userRepo.findAll(spec, pageable).map(userProfileMapper::toDTO);
+    }
+
+    private UserProfileEntity findUserOrThrow(Long userId) {
+        return userRepo.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found with userId " + userId));
     }
 
 }

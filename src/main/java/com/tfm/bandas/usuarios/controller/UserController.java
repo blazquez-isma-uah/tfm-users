@@ -16,8 +16,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Set;
-
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -26,7 +24,6 @@ public class UserController {
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
     private final UserService userService;
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MUSICIAN')")
     @GetMapping
     public PaginatedResponse<UserResponseDTO> getAllUsers(@PageableDefault(size = 10) Pageable pageable) {
         logger.info("Calling getAllUsers with pageable: {}", pageable);
@@ -35,16 +32,14 @@ public class UserController {
         return response;
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MUSICIAN')")
-    @GetMapping("/{id}")
-    public UserResponseDTO getUserById(@PathVariable Long id) {
-        logger.info("Calling getUserById with id: {}", id);
-        UserResponseDTO response = userService.getUserById(id);
+    @GetMapping("/{userId}")
+    public UserResponseDTO getUserById(@PathVariable Long userId) {
+        logger.info("Calling getUserById with userId: {}", userId);
+        UserResponseDTO response = userService.getUserById(userId);
         logger.info("getUserById returning: {}", response);
         return response;
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MUSICIAN')")
     @GetMapping("/email/{email}")
     public UserResponseDTO getUserByEmail(@PathVariable String email) {
         logger.info("Calling getUserByEmail with email: {}", email);
@@ -53,7 +48,6 @@ public class UserController {
         return response;
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MUSICIAN')")
     @GetMapping("/username/{username}")
     public UserResponseDTO getUserByUsername(@PathVariable String username) {
         logger.info("Calling getUserByUsername with username: {}", username);
@@ -72,7 +66,6 @@ public class UserController {
         return response;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public UserResponseDTO createUser(@RequestBody @Valid UserCreateDTO dto) {
         logger.info("Calling createUser with userCreateDTO: {}", dto);
@@ -81,49 +74,35 @@ public class UserController {
         return response;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{id}")
-    public UserResponseDTO updateUser(@PathVariable Long id, @RequestBody @Valid UserUpdateDTO dto) {
-        logger.info("Calling updateUser with id: {} and dto: {}", id, dto);
-        UserResponseDTO response = userService.updateUser(id, dto);
+    @PutMapping("/{userId}")
+    public UserResponseDTO updateUser(@PathVariable Long userId, @RequestBody @Valid UserUpdateDTO dto) {
+        logger.info("Calling updateUser with userId: {} and dto: {}", userId, dto);
+        UserResponseDTO response = userService.updateUser(userId, dto);
         logger.info("updateUser returning: {}", response);
         return response;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/{id}")
-    public void deleteUser(@PathVariable Long id) {
-        logger.info("Calling deleteUser with id: {}", id);
-        userService.deleteUser(id);
-        logger.info("deleteUser completed for id: {}", id);
+    @DeleteMapping("/{userId}")
+    public void deleteUser(@PathVariable Long userId) {
+        logger.info("Calling deleteUser with userId: {}", userId);
+        userService.deleteUser(userId);
+        logger.info("deleteUser completed for userId: {}", userId);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{id}/disable")
-    public void disableUser(@PathVariable Long id) {
-        logger.info("Calling disableUser with id: {}", id);
-        userService.disableUser(id);
-        logger.info("disableUser completed for id: {}", id);
+    @PutMapping("/{userId}/disable")
+    public void disableUser(@PathVariable Long userId) {
+        logger.info("Calling disableUser with userId: {}", userId);
+        userService.disableUser(userId);
+        logger.info("disableUser completed for userId: {}", userId);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{id}/enable")
-    public void enableUser(@PathVariable Long id) {
-        logger.info("Calling enableUser with id: {}", id);
-        userService.enableUser(id);
-        logger.info("enableUser completed for id: {}", id);
+    @PutMapping("/{userId}/enable")
+    public void enableUser(@PathVariable Long userId) {
+        logger.info("Calling enableUser with userId: {}", userId);
+        userService.enableUser(userId);
+        logger.info("enableUser completed for userId: {}", userId);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping("/{id}/assign-instruments")
-    public UserResponseDTO assignInstruments(@PathVariable Long id, @RequestBody Set<Long> instrumentIds) {
-        logger.info("Calling assignInstruments with id: {} and instrumentIds: {}", id, instrumentIds);
-        UserResponseDTO response = userService.updateUserInstruments(id, instrumentIds);
-        logger.info("assignInstruments returning: {}", response);
-        return response;
-    }
-
-    @PreAuthorize("hasAnyRole('ADMIN', 'MUSICIAN')")
     @GetMapping("/search")
     public PaginatedResponse<UserResponseDTO> searchUsers(
             @RequestParam(required = false) String username,
@@ -144,7 +123,6 @@ public class UserController {
         return response;
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MUSICIAN')")
     @GetMapping("/me")
     public UserResponseDTO getMyProfile(@AuthenticationPrincipal Jwt jwt) {
         logger.info("Calling getMyProfile");

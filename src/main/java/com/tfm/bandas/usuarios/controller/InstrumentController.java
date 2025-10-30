@@ -1,7 +1,9 @@
 package com.tfm.bandas.usuarios.controller;
 
 import com.tfm.bandas.usuarios.dto.InstrumentDTO;
+import com.tfm.bandas.usuarios.dto.UserResponseDTO;
 import com.tfm.bandas.usuarios.service.InstrumentService;
+import com.tfm.bandas.usuarios.service.UserService;
 import com.tfm.bandas.usuarios.utils.PaginatedResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +14,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
+
 
 @RestController
 @RequestMapping("/api/instruments")
@@ -20,43 +24,39 @@ public class InstrumentController {
 
     private static final Logger logger = LoggerFactory.getLogger(InstrumentController.class);
     private final InstrumentService instrumentService;
+    private final UserService userService;
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MUSICIAN')")
     @GetMapping
-    public PaginatedResponse<InstrumentDTO> getAll(@PageableDefault(size = 10) Pageable pageable) {
+    public PaginatedResponse<InstrumentDTO> getAllInstuments(@PageableDefault(size = 10) Pageable pageable) {
         logger.info("Calling getAll with pageable: {}", pageable);
         PaginatedResponse<InstrumentDTO> response = PaginatedResponse.from(instrumentService.getAllInstruments(pageable));
         logger.info("getAll returning: {}", response);
         return response;
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MUSICIAN')")
-    @GetMapping("/{id}")
-    public InstrumentDTO getById(@PathVariable Long id) {
-        logger.info("Calling getById with id: {}", id);
-        InstrumentDTO response = instrumentService.getInstrumentById(id);
+    @GetMapping("/{instrumentId}")
+    public InstrumentDTO getInstumentById(@PathVariable Long instrumentId) {
+        logger.info("Calling getById with instrumentId: {}", instrumentId);
+        InstrumentDTO response = instrumentService.getInstrumentById(instrumentId);
         logger.info("getById returning: {}", response);
         return response;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public InstrumentDTO create(@RequestBody @Valid InstrumentDTO dto) {
+    public InstrumentDTO createInstument(@RequestBody @Valid InstrumentDTO dto) {
         logger.info("Calling create with dto: {}", dto);
         InstrumentDTO response = instrumentService.createInstrument(dto);
         logger.info("create returning: {}", response);
         return response;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        logger.info("Calling delete with id: {}", id);
-        instrumentService.deleteInstrument(id);
-        logger.info("delete completed for id: {}", id);
+    @DeleteMapping("/{instrumentId}")
+    public void deleteInstument(@PathVariable Long instrumentId) {
+        logger.info("Calling delete with instrumentId: {}", instrumentId);
+        instrumentService.deleteInstrument(instrumentId);
+        logger.info("delete completed for instrumentId: {}", instrumentId);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'MUSICIAN')")
     @GetMapping("/search")
     public PaginatedResponse<InstrumentDTO> searchInstruments(
             @RequestParam(required = false) String instrumentName,
@@ -65,6 +65,30 @@ public class InstrumentController {
         logger.info("Calling searchInstruments with instrumentName: {}, voice: {}, pageable: {}", instrumentName, voice, pageable);
         PaginatedResponse<InstrumentDTO> response = PaginatedResponse.from(instrumentService.searchInstruments(instrumentName, voice, pageable));
         logger.info("searchInstruments returning: {}", response);
+        return response;
+    }
+
+    @PutMapping("/user/{userId}")
+    public UserResponseDTO updateUserInstruments(@PathVariable Long userId, @RequestBody Set<Long> instrumentIds) {
+        logger.info("Calling assignInstruments with userId: {} and instrumentIds: {}", userId, instrumentIds);
+        UserResponseDTO response = userService.updateUserInstruments(userId, instrumentIds);
+        logger.info("assignInstruments returning: {}", response);
+        return response;
+    }
+
+    @PostMapping("/user/{userId}/{instrumentId}")
+    public UserResponseDTO assignInstrumentToUser(@PathVariable Long userId, @PathVariable Long instrumentId) {
+        logger.info("Calling assignInstrumentToUser with userId: {} and instrumentId: {}", userId, instrumentId);
+        UserResponseDTO response = userService.assignInstrumentToUser(userId, instrumentId);
+        logger.info("assignInstrumentToUser returning: {}", response);
+        return response;
+    }
+
+    @DeleteMapping("/user/{userId}/{instrumentId}")
+    public UserResponseDTO removeInstrumentFromUser(@PathVariable Long userId, @PathVariable Long instrumentId) {
+        logger.info("Calling removeInstrumentFromUser with userId: {} and instrumentId: {}", userId, instrumentId);
+        UserResponseDTO response = userService.removeInstrumentFromUser(userId, instrumentId);
+        logger.info("removeInstrumentFromUser returning: {}", response);
         return response;
     }
 }

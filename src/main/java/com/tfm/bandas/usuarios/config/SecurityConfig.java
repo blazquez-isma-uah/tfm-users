@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
+import static com.tfm.bandas.usuarios.utils.Constants.PATTERNS_AUTHENTICATED;
 import static com.tfm.bandas.usuarios.utils.Constants.PATTERNS_PERMITED;
 
 @Configuration
@@ -32,18 +33,18 @@ public class SecurityConfig {
         conv.setJwtGrantedAuthoritiesConverter(SecurityConfig::extractRealmRoles);
 
         http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsCfg()))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(PATTERNS_PERMITED).permitAll()
-                        // Ajusta según tu API:
-                        .requestMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("ADMIN","MUSICIAN")
-                        .requestMatchers(HttpMethod.POST, "/api/users/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT,  "/api/users/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE,"/api/users/**").hasRole("ADMIN")
-                        .anyRequest().authenticated()
-                )
-                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(conv)));
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsCfg()))
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(PATTERNS_PERMITED).permitAll()
+                    // Ajusta según tu API:
+                    .requestMatchers(HttpMethod.GET, PATTERNS_AUTHENTICATED).hasAnyRole("ADMIN","MUSICIAN")
+                    .requestMatchers(HttpMethod.POST, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
+                    .anyRequest().authenticated()
+            )
+            .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(conv)));
 
         return http.build();
     }
@@ -61,7 +62,7 @@ public class SecurityConfig {
         if (realm != null && realm.get(Constants.ROLES) instanceof List<?> roles) {
             for (Object r : roles) out.add(new SimpleGrantedAuthority("ROLE_" + r.toString()));
         }
-        return new HashSet<GrantedAuthority>(out);
+        return new HashSet<>(out);
     }
 
     @Bean

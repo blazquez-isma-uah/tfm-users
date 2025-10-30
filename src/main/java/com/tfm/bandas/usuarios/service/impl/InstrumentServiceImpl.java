@@ -33,24 +33,24 @@ public class InstrumentServiceImpl implements InstrumentService {
 
     @Override
     @Transactional(readOnly = true)
-    public InstrumentDTO getInstrumentById(Long id) {
-        return instrumentRepo.findById(id)
+    public InstrumentDTO getInstrumentById(Long instrumentId) {
+        return instrumentRepo.findById(instrumentId)
                 .map(instrumentMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("Instrument not found"));
     }
 
     @Override
     @Transactional
-    public InstrumentDTO createInstrument(InstrumentDTO dto) {
-        InstrumentEntity instrument = instrumentMapper.toEntity(dto);
+    public InstrumentDTO createInstrument(InstrumentDTO instument) {
+        InstrumentEntity instrument = instrumentMapper.toEntity(instument);
         return instrumentMapper.toDTO(instrumentRepo.save(instrument));
     }
 
     @Override
     @Transactional
-    public void deleteInstrument(Long id) {
-        InstrumentEntity instrument = instrumentRepo.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Instrument not found: " + id));
+    public void deleteInstrument(Long instrumentId) {
+        InstrumentEntity instrument = instrumentRepo.findById(instrumentId)
+                .orElseThrow(() -> new EntityNotFoundException("Instrument not found: " + instrumentId));
         // Eliminar asignaciones de usuarios antes de borrar
         userRepo.findAll().forEach(user -> user.getInstruments().remove(instrument));
         instrumentRepo.delete(instrument);
@@ -62,7 +62,6 @@ public class InstrumentServiceImpl implements InstrumentService {
         Specification<InstrumentEntity> spec = Specification.allOf(
                 InstrumentSpecifications.instrumentNameContains(instrumentName),
                 InstrumentSpecifications.voiceContains(voice));
-
         return instrumentRepo.findAll(spec, pageable).map(instrumentMapper::toDTO);
     }
 

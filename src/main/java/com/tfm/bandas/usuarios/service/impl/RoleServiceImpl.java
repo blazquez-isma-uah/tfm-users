@@ -39,13 +39,13 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public KeycloakRoleResponse getRoleById(String id) {
-        return identityClient.getRoleById(id);
+    public KeycloakRoleResponse getRoleById(String roleId) {
+        return identityClient.getRoleById(roleId);
     }
 
     @Override
-    public KeycloakRoleResponse getRoleByName(String name) {
-        return identityClient.getRoleByName(name);
+    public KeycloakRoleResponse getRoleByName(String roleName) {
+        return identityClient.getRoleByName(roleName);
     }
 
     @Override
@@ -71,7 +71,6 @@ public class RoleServiceImpl implements RoleService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
 
         identityClient.assignRoleToUser(user.getIamId(), roleName);
-
         try {
             // Comprobar si tiene ese rol en role_names que es una lista de roles separados por coma y añadirlo si no lo tiene
             String roleNames = user.getRoleNames();
@@ -90,10 +89,10 @@ public class RoleServiceImpl implements RoleService {
             identityClient.removeRoleFromUser(user.getIamId(), roleName);
             throw e;
         }
-
     }
 
     @Override
+    @Transactional
     public UserResponseDTO removeRoleFromUser(Long userId, String roleName) {
         UserProfileEntity user = userRepo.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
@@ -116,5 +115,33 @@ public class RoleServiceImpl implements RoleService {
             identityClient.assignRoleToUser(user.getIamId(), roleName);
             throw e;
         }
+    }
+
+    @Override
+    @Transactional
+    public UserResponseDTO updateUserRoles(Long userId, List<String> roleNames) {
+        UserProfileEntity user = userRepo.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+        // Obtener los roles actuales del usuario
+        List<KeycloakRoleResponse> currentRoles = identityClient.listUserRoles(user.getIamId());
+        List<String> currentRoleNames = new ArrayList<>();
+        for (KeycloakRoleResponse role : currentRoles) {
+            currentRoleNames.add(role.name());
+        }
+        // Asignar roles que están en roleNames pero no en currentRoleNames
+        for (String roleName : roleNames) {
+            if (!currentRoleNames.contains(roleName)) {
+                identityClient.assignRoleToUser(user.getIamId(), roleName);
+            }
+        }
+        // Quitar roles que están en currentRoleNames pero no en roleNames
+        for (String roleName : currentRoleNames) {
+            if (!roleNames.contains(roleName)) {
+                identityClient.removeRoleFromUser(user.getIamId(), roleName);
+            }
+        }
+        // Actualizar roleNames en la base de datos
+        user.setRoleNames(roleNames.isEmpty() ? "" : String.join(",", roleNames));
+        return userProfileMapper.toDTO(userRepo.save(user));
     }
 }
