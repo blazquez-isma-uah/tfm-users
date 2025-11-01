@@ -6,7 +6,7 @@ server:
 
 spring:
   application:
-    name: usuarios
+    name: users
 
   datasource:
     # Para prod usa siempre URL/usuario/clave por ENV (ej. SPRING_DATASOURCE_URL)

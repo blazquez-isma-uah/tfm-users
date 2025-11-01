@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-      name: usuarios
+      name: users
   datasource:
     url: jdbc:mysql://localhost:3307/tfm_users?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: tfm_users_rw

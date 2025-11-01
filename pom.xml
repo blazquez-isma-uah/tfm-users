@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.tfm.bandas</groupId>
-	<artifactId>usuarios</artifactId>
+	<artifactId>users</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>usuarios</name>
+	<name>users</name>
 	<description>Proyecto para el microservicio de Gestión de Usuarios y Autenticación</description>
 	<url/>
 	<licenses>
