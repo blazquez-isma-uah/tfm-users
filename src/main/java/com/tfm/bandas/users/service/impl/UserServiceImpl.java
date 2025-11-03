@@ -29,7 +29,6 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepo;
     private final InstrumentRepository instrumentRepo;
-    private final UserProfileMapper userProfileMapper;
     private final IdentityClient identityClient;
     private final RoleService roleService;
 
@@ -37,20 +36,20 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public Page<UserResponseDTO> getAllUsers(Pageable pageable) {
         return userRepo.findAll(pageable)
-                .map(userProfileMapper::toDTO);
+                .map(UserProfileMapper::toDTO);
     }
 
     @Override
     @Transactional(readOnly = true)
     public UserResponseDTO getUserById(Long userId) {
-        return userProfileMapper.toDTO(findUserOrThrow(userId));
+        return UserProfileMapper.toDTO(findUserOrThrow(userId));
     }
 
     @Override
     @Transactional(readOnly = true)
     public UserResponseDTO getUserByEmail(String email) {
         return userRepo.findByEmail(email)
-                .map(userProfileMapper::toDTO)
+                .map(UserProfileMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
     }
 
@@ -58,7 +57,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public UserResponseDTO getUserByUsername(String username) {
         return userRepo.findByUsername(username) // Asumimos que el username es el email
-                .map(userProfileMapper::toDTO)
+                .map(UserProfileMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("User not found with username: " + username));
     }
 
@@ -66,7 +65,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public UserResponseDTO getUserByIamId(String iamId) {
         return userRepo.findByIamId(iamId)
-                .map(userProfileMapper::toDTO)
+                .map(UserProfileMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
     }
 
@@ -82,7 +81,7 @@ public class UserServiceImpl implements UserService {
 
         String keycloakId = null;
         try {
-            KeycloakUserResponse kcUser = identityClient.createUserInKeycloak(userProfileMapper.toKeycloakUserRegisterRequest(dto));
+            KeycloakUserResponse kcUser = identityClient.createUserInKeycloak(UserProfileMapper.toKeycloakUserRegisterRequest(dto));
             keycloakId = kcUser.id();
             UserProfileEntity userProfile = UserProfileEntity.builder()
                     .iamId(keycloakId)
@@ -105,7 +104,7 @@ public class UserServiceImpl implements UserService {
                 userProfile.setInstruments(instruments);
             }
             userProfile = userRepo.save(userProfile);
-            UserResponseDTO createdUserDTO = userProfileMapper.toDTO(userProfile);
+            UserResponseDTO createdUserDTO = UserProfileMapper.toDTO(userProfile);
 
             // Asignar roles en Keycloak y en base de datos
             if (dto.roles() != null && !dto.roles().isEmpty()) {
@@ -151,7 +150,7 @@ public class UserServiceImpl implements UserService {
             kcUpdatedUser = identityClient.updateUserData(userProfileOriginal.getIamId(), kcUserUpdate);
 
             UserProfileEntity userProfileToUpdate = updateUserProfileData(dto, userProfileOriginal);
-            return userProfileMapper.toDTO(userRepo.save(userProfileToUpdate));
+            return UserProfileMapper.toDTO(userRepo.save(userProfileToUpdate));
         } catch (RuntimeException e) {
             if (kcUpdatedUser != null) {
                 // Intentar revertir los cambios en Keycloak
@@ -225,7 +224,7 @@ public class UserServiceImpl implements UserService {
         InstrumentEntity instrument = instrumentRepo.findById(instrumentId)
                 .orElseThrow(() -> new NotFoundException("Instrument not found with id " + instrumentId));
         userProfile.getInstruments().add(instrument);
-        return userProfileMapper.toDTO(userRepo.save(userProfile));
+        return UserProfileMapper.toDTO(userRepo.save(userProfile));
     }
 
     @Override
@@ -235,7 +234,7 @@ public class UserServiceImpl implements UserService {
         InstrumentEntity instrument = instrumentRepo.findById(instrumentId)
                 .orElseThrow(() -> new NotFoundException("Instrument not found with id " + instrumentId));
         userProfile.getInstruments().remove(instrument);
-        return userProfileMapper.toDTO(userRepo.save(userProfile));
+        return UserProfileMapper.toDTO(userRepo.save(userProfile));
     }
 
     @Override
@@ -248,7 +247,7 @@ public class UserServiceImpl implements UserService {
                     new HashSet<>(instrumentRepo.findAllById(instrumentIds));
             userProfile.setInstruments(instruments);
         }
-        return userProfileMapper.toDTO(userRepo.save(userProfile));
+        return UserProfileMapper.toDTO(userRepo.save(userProfile));
     }
 
     @Override
@@ -265,7 +264,7 @@ public class UserServiceImpl implements UserService {
                 UserSpecifications.hasInstrument(instrumentId)
         );
 
-        return userRepo.findAll(spec, pageable).map(userProfileMapper::toDTO);
+        return userRepo.findAll(spec, pageable).map(UserProfileMapper::toDTO);
     }
 
     private UserProfileEntity findUserOrThrow(Long userId) {

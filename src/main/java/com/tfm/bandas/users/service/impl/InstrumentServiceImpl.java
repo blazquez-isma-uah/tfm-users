@@ -21,29 +21,28 @@ import org.springframework.transaction.annotation.Transactional;
 public class InstrumentServiceImpl implements InstrumentService {
 
     private final InstrumentRepository instrumentRepo;
-    private final InstrumentMapper instrumentMapper;
     private final UserRepository userRepo;
 
     @Override
     @Transactional(readOnly = true)
     public Page<InstrumentDTO> getAllInstruments(Pageable pageable) {
         return instrumentRepo.findAll(pageable)
-                .map(instrumentMapper::toDTO);
+                .map(InstrumentMapper::toDTO);
     }
 
     @Override
     @Transactional(readOnly = true)
     public InstrumentDTO getInstrumentById(Long instrumentId) {
         return instrumentRepo.findById(instrumentId)
-                .map(instrumentMapper::toDTO)
+                .map(InstrumentMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("Instrument not found"));
     }
 
     @Override
     @Transactional
     public InstrumentDTO createInstrument(InstrumentDTO instument) {
-        InstrumentEntity instrument = instrumentMapper.toEntity(instument);
-        return instrumentMapper.toDTO(instrumentRepo.save(instrument));
+        InstrumentEntity instrument = InstrumentMapper.toEntity(instument);
+        return InstrumentMapper.toDTO(instrumentRepo.save(instrument));
     }
 
     @Override
@@ -62,7 +61,7 @@ public class InstrumentServiceImpl implements InstrumentService {
         Specification<InstrumentEntity> spec = Specification.allOf(
                 InstrumentSpecifications.instrumentNameContains(instrumentName),
                 InstrumentSpecifications.voiceContains(voice));
-        return instrumentRepo.findAll(spec, pageable).map(instrumentMapper::toDTO);
+        return instrumentRepo.findAll(spec, pageable).map(InstrumentMapper::toDTO);
     }
 
 }

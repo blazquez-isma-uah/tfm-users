@@ -2,10 +2,34 @@ package com.tfm.bandas.users.dto.mapper;
 
 import com.tfm.bandas.users.dto.InstrumentDTO;
 import com.tfm.bandas.users.model.entity.InstrumentEntity;
-import org.mapstruct.Mapper;
 
-@Mapper(componentModel = "spring")
-public interface InstrumentMapper {
-    InstrumentDTO toDTO(InstrumentEntity instrument);
-    InstrumentEntity toEntity(InstrumentDTO instrumentDTO);
+public class InstrumentMapper {
+
+    private InstrumentMapper() {
+        // Constructor privado para evitar instanciación
+    }
+
+    // Convierte InstrumentEntity a InstrumentDTO
+    public static InstrumentDTO toDTO(InstrumentEntity instrument) {
+        if (instrument == null) {
+            return null;
+        }
+        return new InstrumentDTO(
+                instrument.getId(),
+                instrument.getInstrumentName(),
+                instrument.getVoice()
+        );
+    }
+
+    // Convierte InstrumentDTO a InstrumentEntity
+    public static InstrumentEntity toEntity(InstrumentDTO instrumentDTO) {
+        if (instrumentDTO == null) {
+            return null;
+        }
+        return InstrumentEntity.builder()
+                .id(instrumentDTO.id())
+                .instrumentName(instrumentDTO.instrumentName())
+                .voice(instrumentDTO.voice())
+                .build();
+    }
 }

@@ -21,7 +21,6 @@ public class RoleServiceImpl implements RoleService {
 
     private final IdentityClient identityClient;
     private final UserRepository userRepo;
-    private final UserProfileMapper userProfileMapper;
 
     @Override
     public List<KeycloakRoleResponse> getAllRoles() {
@@ -83,7 +82,7 @@ public class RoleServiceImpl implements RoleService {
                 }
             }
             UserProfileEntity userProfile = userRepo.save(user);
-            return userProfileMapper.toDTO(userProfile);
+            return UserProfileMapper.toDTO(userProfile);
         } catch (Exception e) {
             // Si se produce un error en la base de datos, desasignar el rol en Keycloak
             identityClient.removeRoleFromUser(user.getIamId(), roleName);
@@ -106,10 +105,10 @@ public class RoleServiceImpl implements RoleService {
                     rolesList.remove(roleName);
                     user.setRoleNames(String.join(",", rolesList));
                     UserProfileEntity userProfile = userRepo.save(user);
-                    return userProfileMapper.toDTO(userProfile);
+                    return UserProfileMapper.toDTO(userProfile);
                 }
             }
-            return userProfileMapper.toDTO(user);
+            return UserProfileMapper.toDTO(user);
         } catch (RuntimeException e) {
             // Si se produce un error en la base de datos, reasignar el rol en Keycloak
             identityClient.assignRoleToUser(user.getIamId(), roleName);
@@ -142,6 +141,6 @@ public class RoleServiceImpl implements RoleService {
         }
         // Actualizar roleNames en la base de datos
         user.setRoleNames(roleNames.isEmpty() ? "" : String.join(",", roleNames));
-        return userProfileMapper.toDTO(userRepo.save(user));
+        return UserProfileMapper.toDTO(userRepo.save(user));
     }
 }
