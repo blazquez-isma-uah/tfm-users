@@ -1,14 +1,14 @@
 package com.tfm.bandas.users.client;
 
 import com.tfm.bandas.users.config.FeignSecurityConfig;
-import com.tfm.bandas.users.dto.*; // <-- crea/ajusta estos DTOs espejo de identity
+import com.tfm.bandas.users.dto.*;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static com.tfm.bandas.users.utils.Constants.URL_USERS;
-import static com.tfm.bandas.users.utils.Constants.URL_ROLES;
+import static com.tfm.bandas.users.utils.Constants.PATH_USERS;
+import static com.tfm.bandas.users.utils.Constants.PATH_ROLES;
 
 /*
  * Cliente Feign hacia identity-service.
@@ -22,45 +22,45 @@ import static com.tfm.bandas.users.utils.Constants.URL_ROLES;
         url = "${identity.service.uri}",
         configuration = FeignSecurityConfig.class
 )
-public interface IdentityClient {
+public interface IdentityFeignClient {
     // =========================
     // USERS (UserController)
     // =========================
 
-    @PostMapping(URL_USERS)
+    @PostMapping(PATH_USERS)
     KeycloakUserResponse createUserInKeycloak(@RequestBody KeycloakUserRegisterRequest dto);
 
-    @GetMapping(URL_USERS + "/{id}")
+    @GetMapping(PATH_USERS + "/{id}")
     KeycloakUserResponse getUserById(@PathVariable("id") String id);
 
-    @GetMapping(URL_USERS + "/{id}/details")
+    @GetMapping(PATH_USERS + "/{id}/details")
     KeycloakUserDetailsResponse getUserDetailsById(@PathVariable("id") String id);
 
-    @GetMapping(URL_USERS + "/username/{username}")
+    @GetMapping(PATH_USERS + "/username/{username}")
     KeycloakUserResponse getUserByUsername(@PathVariable("username") String username);
 
-    @GetMapping(URL_USERS + "/username/{username}/details")
+    @GetMapping(PATH_USERS + "/username/{username}/details")
     KeycloakUserDetailsResponse getUserDetailsByUsername(@PathVariable("username") String username);
 
-    @GetMapping(URL_USERS)
+    @GetMapping(PATH_USERS)
     List<KeycloakUserResponse> listAllUsers();
 
-    @DeleteMapping(URL_USERS + "/{id}")
+    @DeleteMapping(PATH_USERS + "/{id}")
     void deleteUserByIamId(@PathVariable("id") String id);
 
-    @DeleteMapping(URL_USERS + "/username/{username}")
+    @DeleteMapping(PATH_USERS + "/username/{username}")
     void deleteUserByUsername(@PathVariable("username") String username);
 
-    @PutMapping(URL_USERS + "/{id}/password")
+    @PutMapping(PATH_USERS + "/{id}/password")
     void updateUserPassword(@PathVariable("id") String id, @RequestBody KeycloakUserPasswordUpdateRequest dto);
 
-    @PutMapping(URL_USERS + "/{id}")
+    @PutMapping(PATH_USERS + "/{id}")
     KeycloakUserResponse updateUserData(@PathVariable("id") String id, @RequestBody KeycloakUserUpdateRequest dto);
 
-    @GetMapping(URL_USERS + "/exists/username/{username}")
+    @GetMapping(PATH_USERS + "/exists/username/{username}")
     Boolean userExistsByUsername(@PathVariable("username") String username);
 
-    @GetMapping(URL_USERS + "/exists/email/{email}")
+    @GetMapping(PATH_USERS + "/exists/email/{email}")
     Boolean userExistsByEmail(@PathVariable("email") String email);
 
 
@@ -68,27 +68,27 @@ public interface IdentityClient {
     // ROLES (RoleController)
     // =========================
 
-    @GetMapping(URL_ROLES)
+    @GetMapping(PATH_ROLES)
     List<KeycloakRoleResponse> listAllRoles();
 
-    @PostMapping(URL_ROLES)
+    @PostMapping(PATH_ROLES)
     KeycloakRoleResponse createRealmRole(@RequestBody KeycloakRoleRegisterRequest dto);
 
-    @GetMapping(URL_ROLES + "/{id}")
+    @GetMapping(PATH_ROLES + "/{id}")
     KeycloakRoleResponse getRoleById(@PathVariable("id") String id);
 
-    @GetMapping(URL_ROLES + "/name/{name}")
+    @GetMapping(PATH_ROLES + "/name/{name}")
     KeycloakRoleResponse getRoleByName(@PathVariable("name") String name);
 
-    @DeleteMapping(URL_ROLES + "/{role}")
+    @DeleteMapping(PATH_ROLES + "/{role}")
     void deleteRealmRole(@PathVariable("role") String role);
 
-    @GetMapping(URL_ROLES + "/user/{id}")
+    @GetMapping(PATH_ROLES + "/user/{id}")
     List<KeycloakRoleResponse> listUserRoles(@PathVariable("id") String userId);
 
-    @PostMapping(URL_ROLES + "/user/{id}/{roleName}")
+    @PostMapping(PATH_ROLES + "/user/{id}/{roleName}")
     void assignRoleToUser(@PathVariable("id") String userId, @PathVariable("roleName") String roleName);
 
-    @DeleteMapping(URL_ROLES + "/user/{id}/{roleName}")
+    @DeleteMapping(PATH_ROLES + "/user/{id}/{roleName}")
     void removeRoleFromUser(@PathVariable("id") String userId, @PathVariable("roleName") String roleName);
 }

@@ -1,6 +1,6 @@
 package com.tfm.bandas.users.service.impl;
 
-import com.tfm.bandas.users.client.IdentityClient;
+import com.tfm.bandas.users.client.IdentityFeignClient;
 import com.tfm.bandas.users.dto.*;
 import com.tfm.bandas.users.dto.mapper.UserProfileMapper;
 import com.tfm.bandas.users.exception.BadRequestException;
@@ -29,7 +29,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepo;
     private final InstrumentRepository instrumentRepo;
-    private final IdentityClient identityClient;
+    private final IdentityFeignClient identityFeignClient;
     private final RoleService roleService;
 
     @Override
@@ -81,7 +81,7 @@ public class UserServiceImpl implements UserService {
 
         String keycloakId = null;
         try {
-            KeycloakUserResponse kcUser = identityClient.createUserInKeycloak(UserProfileMapper.toKeycloakUserRegisterRequest(dto));
+            KeycloakUserResponse kcUser = identityFeignClient.createUserInKeycloak(UserProfileMapper.toKeycloakUserRegisterRequest(dto));
             keycloakId = kcUser.id();
             UserProfileEntity userProfile = UserProfileEntity.builder()
                     .iamId(keycloakId)
@@ -118,7 +118,7 @@ public class UserServiceImpl implements UserService {
             if(keycloakId != null) {
                 // Intentar limpiar el usuario creado en Keycloak
                 try {
-                    identityClient.deleteUserByIamId(keycloakId);
+                    identityFeignClient.deleteUserByIamId(keycloakId);
                 } catch (Exception ex) {
                     // Loggear el error pero no hacer nada más
                     System.err.println("Failed to clean up Keycloak user with IAM ID " + keycloakId + ": " + ex.getMessage());
@@ -147,7 +147,7 @@ public class UserServiceImpl implements UserService {
                     dto.firstName(),
                     dto.lastName() + " " + dto.secondLastName()
             );
-            kcUpdatedUser = identityClient.updateUserData(userProfileOriginal.getIamId(), kcUserUpdate);
+            kcUpdatedUser = identityFeignClient.updateUserData(userProfileOriginal.getIamId(), kcUserUpdate);
 
             UserProfileEntity userProfileToUpdate = updateUserProfileData(dto, userProfileOriginal);
             return UserProfileMapper.toDTO(userRepo.save(userProfileToUpdate));
@@ -161,7 +161,7 @@ public class UserServiceImpl implements UserService {
                             userProfileOriginal.getFirstName(),
                             userProfileOriginal.getLastName() + " " + userProfileOriginal.getSecondLastName()
                     );
-                    identityClient.updateUserData(userProfileOriginal.getIamId(), kcUserRevert);
+                    identityFeignClient.updateUserData(userProfileOriginal.getIamId(), kcUserRevert);
                 } catch (Exception ex) {
                     // Loggear el error pero no hacer nada más
                     System.err.println("Failed to revert Keycloak user with IAM ID " + userProfileOriginal.getIamId() + ": " + ex.getMessage());
@@ -193,7 +193,7 @@ public class UserServiceImpl implements UserService {
         UserProfileEntity userProfileToDelete = findUserOrThrow(userId);
         if (userProfileToDelete != null) {
             try {
-                identityClient.deleteUserByIamId(userProfileToDelete.getIamId());
+                identityFeignClient.deleteUserByIamId(userProfileToDelete.getIamId());
             } catch (Exception e) {
                 throw new RuntimeException("Failed to delete associated Keycloak user with IAM ID: " + userProfileToDelete.getIamId(), e);
             }
