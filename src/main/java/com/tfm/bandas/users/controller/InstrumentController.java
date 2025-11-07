@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Set;
@@ -26,68 +28,69 @@ public class InstrumentController {
     private final UserService userService;
 
     @GetMapping
-    public PaginatedResponse<InstrumentDTO> getAllInstuments(@PageableDefault(size = 10) Pageable pageable) {
+    public ResponseEntity<PaginatedResponse<InstrumentDTO>> getAllInstuments(@PageableDefault(size = 10) Pageable pageable) {
         logger.info("Calling getAll with pageable: {}", pageable);
         PaginatedResponse<InstrumentDTO> response = PaginatedResponse.from(instrumentService.getAllInstruments(pageable));
         logger.info("getAll returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{instrumentId}")
-    public InstrumentDTO getInstumentById(@PathVariable Long instrumentId) {
+    public ResponseEntity<InstrumentDTO> getInstumentById(@PathVariable Long instrumentId) {
         logger.info("Calling getById with instrumentId: {}", instrumentId);
         InstrumentDTO response = instrumentService.getInstrumentById(instrumentId);
         logger.info("getById returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
-    public InstrumentDTO createInstument(@RequestBody @Valid InstrumentDTO dto) {
+    public ResponseEntity<InstrumentDTO> createInstument(@RequestBody @Valid InstrumentDTO dto) {
         logger.info("Calling create with dto: {}", dto);
         InstrumentDTO response = instrumentService.createInstrument(dto);
         logger.info("create returning: {}", response);
-        return response;
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @DeleteMapping("/{instrumentId}")
-    public void deleteInstument(@PathVariable Long instrumentId) {
+    public ResponseEntity<Void> deleteInstument(@PathVariable Long instrumentId) {
         logger.info("Calling delete with instrumentId: {}", instrumentId);
         instrumentService.deleteInstrument(instrumentId);
         logger.info("delete completed for instrumentId: {}", instrumentId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/search")
-    public PaginatedResponse<InstrumentDTO> searchInstruments(
+    public ResponseEntity<PaginatedResponse<InstrumentDTO>> searchInstruments(
             @RequestParam(required = false) String instrumentName,
             @RequestParam(required = false) String voice,
             @PageableDefault(size = 10) Pageable pageable) {
         logger.info("Calling searchInstruments with instrumentName: {}, voice: {}, pageable: {}", instrumentName, voice, pageable);
         PaginatedResponse<InstrumentDTO> response = PaginatedResponse.from(instrumentService.searchInstruments(instrumentName, voice, pageable));
         logger.info("searchInstruments returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/user/{userId}")
-    public UserResponseDTO updateUserInstruments(@PathVariable Long userId, @RequestBody Set<Long> instrumentIds) {
+    public ResponseEntity<UserResponseDTO> updateUserInstruments(@PathVariable Long userId, @RequestBody Set<Long> instrumentIds) {
         logger.info("Calling assignInstruments with userId: {} and instrumentIds: {}", userId, instrumentIds);
         UserResponseDTO response = userService.updateUserInstruments(userId, instrumentIds);
         logger.info("assignInstruments returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/user/{userId}/{instrumentId}")
-    public UserResponseDTO assignInstrumentToUser(@PathVariable Long userId, @PathVariable Long instrumentId) {
+    public ResponseEntity<UserResponseDTO> assignInstrumentToUser(@PathVariable Long userId, @PathVariable Long instrumentId) {
         logger.info("Calling assignInstrumentToUser with userId: {} and instrumentId: {}", userId, instrumentId);
         UserResponseDTO response = userService.assignInstrumentToUser(userId, instrumentId);
         logger.info("assignInstrumentToUser returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/user/{userId}/{instrumentId}")
-    public UserResponseDTO removeInstrumentFromUser(@PathVariable Long userId, @PathVariable Long instrumentId) {
+    public ResponseEntity<UserResponseDTO> removeInstrumentFromUser(@PathVariable Long userId, @PathVariable Long instrumentId) {
         logger.info("Calling removeInstrumentFromUser with userId: {} and instrumentId: {}", userId, instrumentId);
         UserResponseDTO response = userService.removeInstrumentFromUser(userId, instrumentId);
         logger.info("removeInstrumentFromUser returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 }

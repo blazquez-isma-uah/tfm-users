@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -25,86 +27,89 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public PaginatedResponse<UserResponseDTO> getAllUsers(@PageableDefault(size = 10) Pageable pageable) {
+    public ResponseEntity<PaginatedResponse<UserResponseDTO>> getAllUsers(@PageableDefault(size = 10) Pageable pageable) {
         logger.info("Calling getAllUsers with pageable: {}", pageable);
         PaginatedResponse<UserResponseDTO> response = PaginatedResponse.from(userService.getAllUsers(pageable));
         logger.info("getAllUsers returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{userId}")
-    public UserResponseDTO getUserById(@PathVariable Long userId) {
+    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable Long userId) {
         logger.info("Calling getUserById with userId: {}", userId);
         UserResponseDTO response = userService.getUserById(userId);
         logger.info("getUserById returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/email/{email}")
-    public UserResponseDTO getUserByEmail(@PathVariable String email) {
+    public ResponseEntity<UserResponseDTO> getUserByEmail(@PathVariable String email) {
         logger.info("Calling getUserByEmail with email: {}", email);
         UserResponseDTO response = userService.getUserByEmail(email);
         logger.info("getUserByEmail returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/username/{username}")
-    public UserResponseDTO getUserByUsername(@PathVariable String username) {
+    public ResponseEntity<UserResponseDTO> getUserByUsername(@PathVariable String username) {
         logger.info("Calling getUserByUsername with username: {}", username);
         UserResponseDTO response = userService.getUserByUsername(username);
         logger.info("getUserByUsername returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     // get user by iamId solo para admin
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/iam/{iamId}")
-    public UserResponseDTO getUserByIamId(@PathVariable String iamId) {
+    public ResponseEntity<UserResponseDTO> getUserByIamId(@PathVariable String iamId) {
         logger.info("Calling getUserByIamId with iamId: {}", iamId);
         UserResponseDTO response = userService.getUserByIamId(iamId);
         logger.info("getUserByIamId returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping
-    public UserResponseDTO createUser(@RequestBody @Valid UserCreateDTO dto) {
+    public ResponseEntity<UserResponseDTO> createUser(@RequestBody @Valid UserCreateDTO dto) {
         logger.info("Calling createUser with userCreateDTO: {}", dto);
         UserResponseDTO response = userService.createUser(dto);
         logger.info("createUser returning: {}", response);
-        return response;
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{userId}")
-    public UserResponseDTO updateUser(@PathVariable Long userId, @RequestBody @Valid UserUpdateDTO dto) {
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long userId, @RequestBody @Valid UserUpdateDTO dto) {
         logger.info("Calling updateUser with userId: {} and dto: {}", userId, dto);
         UserResponseDTO response = userService.updateUser(userId, dto);
         logger.info("updateUser returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{userId}")
-    public void deleteUser(@PathVariable Long userId) {
+    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         logger.info("Calling deleteUser with userId: {}", userId);
         userService.deleteUser(userId);
         logger.info("deleteUser completed for userId: {}", userId);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{userId}/disable")
-    public void disableUser(@PathVariable Long userId) {
+    public ResponseEntity<Void> disableUser(@PathVariable Long userId) {
         logger.info("Calling disableUser with userId: {}", userId);
         userService.disableUser(userId);
         logger.info("disableUser completed for userId: {}", userId);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{userId}/enable")
-    public void enableUser(@PathVariable Long userId) {
+    public ResponseEntity<Void> enableUser(@PathVariable Long userId) {
         logger.info("Calling enableUser with userId: {}", userId);
         userService.enableUser(userId);
         logger.info("enableUser completed for userId: {}", userId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/search")
-    public PaginatedResponse<UserResponseDTO> searchUsers(
+    public ResponseEntity<PaginatedResponse<UserResponseDTO>> searchUsers(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
@@ -120,16 +125,16 @@ public class UserController {
                 userService.searchUsers(username, firstName, lastName, secondLastName, email, active, instrumentId, pageable)
         );
         logger.info("searchUsers returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/me")
-    public UserResponseDTO getMyProfile(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<UserResponseDTO> getMyProfile(@AuthenticationPrincipal Jwt jwt) {
         logger.info("Calling getMyProfile");
         // El claim "sub" de JWT es el que corresponde al iamId
         String iamId = jwt.getSubject();
         UserResponseDTO response = userService.getUserByIamId(iamId);
         logger.info("getMyProfile returning: {}", response);
-        return response;
+        return ResponseEntity.ok(response);
     }
 }
