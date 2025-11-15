@@ -12,6 +12,7 @@ import com.tfm.bandas.users.model.repository.UserRepository;
 import com.tfm.bandas.users.model.specification.UserSpecifications;
 import com.tfm.bandas.users.service.RoleService;
 import com.tfm.bandas.users.service.UserService;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
+
+import static com.tfm.bandas.users.utils.EtagUtils.compareVersion;
 
 @Service
 @RequiredArgsConstructor
@@ -34,20 +37,20 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<UserResponseDTO> getAllUsers(Pageable pageable) {
+    public Page<UserDTO> getAllUsers(Pageable pageable) {
         return userRepo.findAll(pageable)
                 .map(UserProfileMapper::toDTO);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public UserResponseDTO getUserById(Long userId) {
+    public UserDTO getUserById(Long userId) {
         return UserProfileMapper.toDTO(findUserOrThrow(userId));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public UserResponseDTO getUserByEmail(String email) {
+    public UserDTO getUserByEmail(String email) {
         return userRepo.findByEmail(email)
                 .map(UserProfileMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
@@ -55,7 +58,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserResponseDTO getUserByUsername(String username) {
+    public UserDTO getUserByUsername(String username) {
         return userRepo.findByUsername(username) // Asumimos que el username es el email
                 .map(UserProfileMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("User not found with username: " + username));
@@ -63,7 +66,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserResponseDTO getUserByIamId(String iamId) {
+    public UserDTO getUserByIamId(String iamId) {
         return userRepo.findByIamId(iamId)
                 .map(UserProfileMapper::toDTO)
                 .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
@@ -71,7 +74,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponseDTO createUser(UserCreateDTO dto) {
+    public UserDTO createUser(UserCreateRequestDTO dto) {
         if(userRepo.existsByUsername(dto.username())) {
             throw new BadRequestException("User already registered with username: " + dto.username());
         }
@@ -103,13 +106,13 @@ public class UserServiceImpl implements UserService {
                 Set<InstrumentEntity> instruments = new HashSet<>(instrumentRepo.findAllById(dto.instrumentIds()));
                 userProfile.setInstruments(instruments);
             }
-            userProfile = userRepo.save(userProfile);
-            UserResponseDTO createdUserDTO = UserProfileMapper.toDTO(userProfile);
+            userProfile = userRepo.saveAndFlush(userProfile);
+            UserDTO createdUserDTO = UserProfileMapper.toDTO(userProfile);
 
             // Asignar roles en Keycloak y en base de datos
             if (dto.roles() != null && !dto.roles().isEmpty()) {
                 for(String roleName : dto.roles()) {
-                    createdUserDTO = roleService.assignRoleToUser(userProfile.getId(), roleName);
+                    createdUserDTO = roleService.assignRoleToUser(userProfile.getId(), roleName, createdUserDTO.version());
                 }
             }
             return createdUserDTO;
@@ -130,7 +133,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponseDTO updateUser(Long userId, UserUpdateDTO dto) {
+    public UserDTO updateUser(Long userId, UserUpdateRequestDTO dto, int ifMatchVersion) {
         UserProfileEntity userProfileOriginal = findUserOrThrow(userId);
 
         // Si el email ha cambiado, hay que verificar que no exista otro usuario con ese email
@@ -138,6 +141,8 @@ public class UserServiceImpl implements UserService {
                 && userRepo.existsByEmail(dto.email())) {
             throw new BadRequestException("Another user is already registered with email: " + dto.email());
         }
+
+        compareVersion(ifMatchVersion, userProfileOriginal.getVersion());
 
         KeycloakUserResponse kcUpdatedUser = null;
         try {
@@ -150,7 +155,7 @@ public class UserServiceImpl implements UserService {
             kcUpdatedUser = identityFeignClient.updateUserData(userProfileOriginal.getIamId(), kcUserUpdate);
 
             UserProfileEntity userProfileToUpdate = updateUserProfileData(dto, userProfileOriginal);
-            return UserProfileMapper.toDTO(userRepo.save(userProfileToUpdate));
+            return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfileToUpdate));
         } catch (RuntimeException e) {
             if (kcUpdatedUser != null) {
                 // Intentar revertir los cambios en Keycloak
@@ -171,7 +176,7 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private UserProfileEntity updateUserProfileData(UserUpdateDTO dto, UserProfileEntity userProfileOriginal) {
+    private UserProfileEntity updateUserProfileData(UserUpdateRequestDTO dto, UserProfileEntity userProfileOriginal) {
         // NO se actualiza id, iamId, systemSignupDate, username → son inmutables
         // NO se actualiza active, roleNames, instruments → se hace con endpoints específicos
         UserProfileEntity userProfileToUpdate = new UserProfileEntity(userProfileOriginal);
@@ -189,13 +194,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void deleteUser(Long userId) {
+    public void deleteUser(Long userId, int ifMatchVersion) {
         UserProfileEntity userProfileToDelete = findUserOrThrow(userId);
         if (userProfileToDelete != null) {
+            compareVersion(ifMatchVersion, userProfileToDelete.getVersion());
             try {
                 identityFeignClient.deleteUserByIamId(userProfileToDelete.getIamId());
+            } catch (FeignException fe) {
+                // Propagar FeignException para que el handler lo traduzca según el upstream
+                throw fe;
             } catch (Exception e) {
-                throw new RuntimeException("Failed to delete associated Keycloak user with IAM ID: " + userProfileToDelete.getIamId(), e);
+                throw new BadRequestException("Failed to delete associated Keycloak user with IAM ID: " + userProfileToDelete.getIamId() + ". Cause: " + e.getMessage());
             }
         }
         userRepo.deleteById(userId);
@@ -203,43 +212,47 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void disableUser(Long userId) {
+    public void disableUser(Long userId, int ifMatchVersion) {
         UserProfileEntity user = findUserOrThrow(userId);
+        compareVersion(ifMatchVersion, user.getVersion());
         user.setActive(false);
-        userRepo.save(user);
+        userRepo.saveAndFlush(user);
     }
 
     @Override
     @Transactional
-    public void enableUser(Long userId) {
+    public void enableUser(Long userId, int ifMatchVersion) {
         UserProfileEntity user = findUserOrThrow(userId);
+        compareVersion(ifMatchVersion, user.getVersion());
         user.setActive(true);
-        userRepo.save(user);
+        userRepo.saveAndFlush(user);
     }
 
     @Override
     @Transactional
-    public UserResponseDTO assignInstrumentToUser(Long userId, Long instrumentId) {
+    public UserDTO assignInstrumentToUser(Long userId, Long instrumentId, int ifMatchVersion) {
         UserProfileEntity userProfile = findUserOrThrow(userId);
         InstrumentEntity instrument = instrumentRepo.findById(instrumentId)
                 .orElseThrow(() -> new NotFoundException("Instrument not found with id " + instrumentId));
+        compareVersion(ifMatchVersion, userProfile.getVersion());
         userProfile.getInstruments().add(instrument);
-        return UserProfileMapper.toDTO(userRepo.save(userProfile));
+        return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfile));
     }
 
     @Override
     @Transactional
-    public UserResponseDTO removeInstrumentFromUser(Long userId, Long instrumentId) {
+    public UserDTO removeInstrumentFromUser(Long userId, Long instrumentId, int ifMatchVersion) {
         UserProfileEntity userProfile = findUserOrThrow(userId);
         InstrumentEntity instrument = instrumentRepo.findById(instrumentId)
                 .orElseThrow(() -> new NotFoundException("Instrument not found with id " + instrumentId));
+        compareVersion(ifMatchVersion, userProfile.getVersion());
         userProfile.getInstruments().remove(instrument);
-        return UserProfileMapper.toDTO(userRepo.save(userProfile));
+        return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfile));
     }
 
     @Override
     @Transactional
-    public UserResponseDTO updateUserInstruments(Long userId, Set<Long> instrumentIds) {
+    public UserDTO updateUserInstruments(Long userId, Set<Long> instrumentIds, int ifMatchVersion) {
         UserProfileEntity userProfile = findUserOrThrow(userId);
         if (instrumentIds != null) {
             Set<InstrumentEntity> instruments =
@@ -247,13 +260,14 @@ public class UserServiceImpl implements UserService {
                     new HashSet<>(instrumentRepo.findAllById(instrumentIds));
             userProfile.setInstruments(instruments);
         }
-        return UserProfileMapper.toDTO(userRepo.save(userProfile));
+        compareVersion(ifMatchVersion, userProfile.getVersion());
+        return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfile));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<UserResponseDTO> searchUsers(String username, String firstName, String lastName, String secondLastName,
-                                             String email, Boolean active, Long instrumentId, Pageable pageable) {
+    public Page<UserDTO> searchUsers(String username, String firstName, String lastName, String secondLastName,
+                                     String email, Boolean active, Long instrumentId, Pageable pageable) {
         Specification<UserProfileEntity> spec = Specification.allOf(
                 UserSpecifications.usernameContains(username),
                 UserSpecifications.firstNameContains(firstName),

@@ -79,6 +79,10 @@ public class UserProfileEntity {
     @Column(name = "role_names")
     private String roleNames;
 
+    @Version
+    @Column(name = "version")
+    private Integer version;
+
     public UserProfileEntity(UserProfileEntity userProfileEntity) {
         this.id = userProfileEntity.id;
         this.iamId = userProfileEntity.iamId;

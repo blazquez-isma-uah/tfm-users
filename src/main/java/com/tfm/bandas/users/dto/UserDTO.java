@@ -4,8 +4,9 @@ import java.time.LocalDate;
 import java.util.Set;
 
 // Salida: datos públicos de usuario
-public record UserResponseDTO(
+public record UserDTO(
         Long id,
+        Integer version,
         String username,
         String iamId,
         String firstName,

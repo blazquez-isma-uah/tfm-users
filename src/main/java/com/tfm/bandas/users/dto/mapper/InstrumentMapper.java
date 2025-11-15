@@ -1,6 +1,7 @@
 package com.tfm.bandas.users.dto.mapper;
 
 import com.tfm.bandas.users.dto.InstrumentDTO;
+import com.tfm.bandas.users.dto.InstrumentRequestDTO;
 import com.tfm.bandas.users.model.entity.InstrumentEntity;
 
 public class InstrumentMapper {
@@ -16,6 +17,7 @@ public class InstrumentMapper {
         }
         return new InstrumentDTO(
                 instrument.getId(),
+                instrument.getVersion(),
                 instrument.getInstrumentName(),
                 instrument.getVoice()
         );
@@ -30,6 +32,17 @@ public class InstrumentMapper {
                 .id(instrumentDTO.id())
                 .instrumentName(instrumentDTO.instrumentName())
                 .voice(instrumentDTO.voice())
+                .build();
+    }
+
+    // Convierte InstrumentRequestDTO a InstrumentEntity
+    public static InstrumentEntity toEntityFromRequest(InstrumentRequestDTO instrumentRequestDTO) {
+        if (instrumentRequestDTO == null) {
+            return null;
+        }
+        return InstrumentEntity.builder()
+                .instrumentName(instrumentRequestDTO.instrumentName())
+                .voice(instrumentRequestDTO.voice())
                 .build();
     }
 }

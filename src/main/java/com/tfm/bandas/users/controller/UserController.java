@@ -1,9 +1,10 @@
 package com.tfm.bandas.users.controller;
 
-import com.tfm.bandas.users.dto.UserCreateDTO;
-import com.tfm.bandas.users.dto.UserResponseDTO;
-import com.tfm.bandas.users.dto.UserUpdateDTO;
+import com.tfm.bandas.users.dto.UserCreateRequestDTO;
+import com.tfm.bandas.users.dto.UserDTO;
+import com.tfm.bandas.users.dto.UserUpdateRequestDTO;
 import com.tfm.bandas.users.service.UserService;
+import com.tfm.bandas.users.utils.EtagUtils;
 import com.tfm.bandas.users.utils.PaginatedResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,89 +29,97 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<PaginatedResponse<UserResponseDTO>> getAllUsers(@PageableDefault(size = 10) Pageable pageable) {
+    public ResponseEntity<PaginatedResponse<UserDTO>> getAllUsers(@PageableDefault(size = 10) Pageable pageable) {
         logger.info("Calling getAllUsers with pageable: {}", pageable);
-        PaginatedResponse<UserResponseDTO> response = PaginatedResponse.from(userService.getAllUsers(pageable));
+        PaginatedResponse<UserDTO> response = PaginatedResponse.from(userService.getAllUsers(pageable));
         logger.info("getAllUsers returning: {}", response);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable Long userId) {
+    public ResponseEntity<UserDTO> getUserById(@PathVariable Long userId) {
         logger.info("Calling getUserById with userId: {}", userId);
-        UserResponseDTO response = userService.getUserById(userId);
+        UserDTO response = userService.getUserById(userId);
         logger.info("getUserById returning: {}", response);
-        return ResponseEntity.ok(response);
+        return EtagUtils.withEtag(ResponseEntity.ok(), response.version(), response);
     }
 
     @GetMapping("/email/{email}")
-    public ResponseEntity<UserResponseDTO> getUserByEmail(@PathVariable String email) {
+    public ResponseEntity<UserDTO> getUserByEmail(@PathVariable String email) {
         logger.info("Calling getUserByEmail with email: {}", email);
-        UserResponseDTO response = userService.getUserByEmail(email);
+        UserDTO response = userService.getUserByEmail(email);
         logger.info("getUserByEmail returning: {}", response);
-        return ResponseEntity.ok(response);
+        return EtagUtils.withEtag(ResponseEntity.ok(), response.version(), response);
     }
 
     @GetMapping("/username/{username}")
-    public ResponseEntity<UserResponseDTO> getUserByUsername(@PathVariable String username) {
+    public ResponseEntity<UserDTO> getUserByUsername(@PathVariable String username) {
         logger.info("Calling getUserByUsername with username: {}", username);
-        UserResponseDTO response = userService.getUserByUsername(username);
+        UserDTO response = userService.getUserByUsername(username);
         logger.info("getUserByUsername returning: {}", response);
-        return ResponseEntity.ok(response);
+        return EtagUtils.withEtag(ResponseEntity.ok(), response.version(), response);
     }
 
     // get user by iamId solo para admin
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/iam/{iamId}")
-    public ResponseEntity<UserResponseDTO> getUserByIamId(@PathVariable String iamId) {
+    public ResponseEntity<UserDTO> getUserByIamId(@PathVariable String iamId) {
         logger.info("Calling getUserByIamId with iamId: {}", iamId);
-        UserResponseDTO response = userService.getUserByIamId(iamId);
+        UserDTO response = userService.getUserByIamId(iamId);
         logger.info("getUserByIamId returning: {}", response);
-        return ResponseEntity.ok(response);
+        return EtagUtils.withEtag(ResponseEntity.ok(), response.version(), response);
     }
 
     @PostMapping
-    public ResponseEntity<UserResponseDTO> createUser(@RequestBody @Valid UserCreateDTO dto) {
+    public ResponseEntity<UserDTO> createUser(@RequestBody @Valid UserCreateRequestDTO dto) {
         logger.info("Calling createUser with userCreateDTO: {}", dto);
-        UserResponseDTO response = userService.createUser(dto);
+        UserDTO response = userService.createUser(dto);
         logger.info("createUser returning: {}", response);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return EtagUtils.withEtag(ResponseEntity.status(HttpStatus.CREATED), response.version(), response);
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable Long userId, @RequestBody @Valid UserUpdateDTO dto) {
-        logger.info("Calling updateUser with userId: {} and dto: {}", userId, dto);
-        UserResponseDTO response = userService.updateUser(userId, dto);
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long userId, @RequestBody @Valid UserUpdateRequestDTO dto,
+                                              @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+        logger.info("Calling updateUser with userId: {} and dto: {}, ifMatch: {}", userId, dto, ifMatch);
+        int version = EtagUtils.parseIfMatchToVersion(ifMatch);
+        UserDTO response = userService.updateUser(userId, dto, version);
         logger.info("updateUser returning: {}", response);
-        return ResponseEntity.ok(response);
+        return EtagUtils.withEtag(ResponseEntity.ok(), response.version(), response);
     }
 
     @DeleteMapping("/{userId}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
-        logger.info("Calling deleteUser with userId: {}", userId);
-        userService.deleteUser(userId);
+    public ResponseEntity<Void> deleteUser(@PathVariable Long userId,
+                                           @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+        logger.info("Calling deleteUser with userId: {}, ifMatch: {}", userId, ifMatch);
+        int version = EtagUtils.parseIfMatchToVersion(ifMatch);
+        userService.deleteUser(userId, version);
         logger.info("deleteUser completed for userId: {}", userId);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{userId}/disable")
-    public ResponseEntity<Void> disableUser(@PathVariable Long userId) {
-        logger.info("Calling disableUser with userId: {}", userId);
-        userService.disableUser(userId);
+    public ResponseEntity<Void> disableUser(@PathVariable Long userId,
+                                            @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+        logger.info("Calling disableUser with userId: {}, ifMatch: {}", userId, ifMatch);
+        int version = EtagUtils.parseIfMatchToVersion(ifMatch);
+        userService.disableUser(userId, version);
         logger.info("disableUser completed for userId: {}", userId);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{userId}/enable")
-    public ResponseEntity<Void> enableUser(@PathVariable Long userId) {
-        logger.info("Calling enableUser with userId: {}", userId);
-        userService.enableUser(userId);
+    public ResponseEntity<Void> enableUser(@PathVariable Long userId,
+                                           @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+        logger.info("Calling enableUser with userId: {}, ifMatch: {}", userId, ifMatch);
+        int version = EtagUtils.parseIfMatchToVersion(ifMatch);
+        userService.enableUser(userId, version);
         logger.info("enableUser completed for userId: {}", userId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/search")
-    public ResponseEntity<PaginatedResponse<UserResponseDTO>> searchUsers(
+    public ResponseEntity<PaginatedResponse<UserDTO>> searchUsers(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
@@ -121,7 +131,7 @@ public class UserController {
 
         logger.info("Calling searchUsers with username: {}, firstName: {}, lastName: {}, email: {}, active: {}, instrumentId: {}, pageable: {}",
                 username, firstName, lastName, email, active, instrumentId, pageable);
-        PaginatedResponse<UserResponseDTO> response = PaginatedResponse.from(
+        PaginatedResponse<UserDTO> response = PaginatedResponse.from(
                 userService.searchUsers(username, firstName, lastName, secondLastName, email, active, instrumentId, pageable)
         );
         logger.info("searchUsers returning: {}", response);
@@ -129,12 +139,12 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponseDTO> getMyProfile(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<UserDTO> getMyProfile(@AuthenticationPrincipal Jwt jwt) {
         logger.info("Calling getMyProfile");
         // El claim "sub" de JWT es el que corresponde al iamId
         String iamId = jwt.getSubject();
-        UserResponseDTO response = userService.getUserByIamId(iamId);
+        UserDTO response = userService.getUserByIamId(iamId);
         logger.info("getMyProfile returning: {}", response);
-        return ResponseEntity.ok(response);
+        return EtagUtils.withEtag(ResponseEntity.ok(), response.version(), response);
     }
 }

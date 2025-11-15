@@ -1,8 +1,8 @@
 package com.tfm.bandas.users.dto.mapper;
 
 import com.tfm.bandas.users.dto.KeycloakUserRegisterRequest;
-import com.tfm.bandas.users.dto.UserCreateDTO;
-import com.tfm.bandas.users.dto.UserResponseDTO;
+import com.tfm.bandas.users.dto.UserCreateRequestDTO;
+import com.tfm.bandas.users.dto.UserDTO;
 import com.tfm.bandas.users.model.entity.InstrumentEntity;
 import com.tfm.bandas.users.model.entity.UserProfileEntity;
 
@@ -18,12 +18,13 @@ public class UserProfileMapper {
     }
 
     // Convierte UserProfileEntity a UserResponseDTO
-    public static UserResponseDTO toDTO(UserProfileEntity userProfile) {
+    public static UserDTO toDTO(UserProfileEntity userProfile) {
         if (userProfile == null) {
             return null;
         }
-        return new UserResponseDTO(
+        return new UserDTO(
                 userProfile.getId(),
+                userProfile.getVersion(),
                 userProfile.getUsername(),
                 userProfile.getIamId(),
                 userProfile.getFirstName(),
@@ -43,40 +44,40 @@ public class UserProfileMapper {
     }
 
     // Convierte UserCreateDTO a UserProfileEntity
-    public static UserProfileEntity toEntityFromCreateDTO(UserCreateDTO userCreateDTO) {
-        if (userCreateDTO == null) {
+    public static UserProfileEntity toEntityFromCreateDTO(UserCreateRequestDTO userCreateRequestDTO) {
+        if (userCreateRequestDTO == null) {
             return null;
         }
         return UserProfileEntity.builder()
-                .username(userCreateDTO.username())
-                .firstName(userCreateDTO.firstName())
-                .lastName(userCreateDTO.lastName())
-                .secondLastName(userCreateDTO.secondLastName())
-                .email(userCreateDTO.email())
-                .birthDate(userCreateDTO.birthDate())
-                .bandJoinDate(userCreateDTO.bandJoinDate())
-                .systemSignupDate(userCreateDTO.systemSignupDate())
-                .phone(userCreateDTO.phone())
-                .notes(userCreateDTO.notes())
-                .profilePictureUrl(userCreateDTO.profilePictureUrl())
+                .username(userCreateRequestDTO.username())
+                .firstName(userCreateRequestDTO.firstName())
+                .lastName(userCreateRequestDTO.lastName())
+                .secondLastName(userCreateRequestDTO.secondLastName())
+                .email(userCreateRequestDTO.email())
+                .birthDate(userCreateRequestDTO.birthDate())
+                .bandJoinDate(userCreateRequestDTO.bandJoinDate())
+                .systemSignupDate(userCreateRequestDTO.systemSignupDate())
+                .phone(userCreateRequestDTO.phone())
+                .notes(userCreateRequestDTO.notes())
+                .profilePictureUrl(userCreateRequestDTO.profilePictureUrl())
                 .build();
     }
 
     // Convierte UserCreateDTO a KeycloakUserRegisterRequest
-    public static KeycloakUserRegisterRequest toKeycloakUserRegisterRequest(UserCreateDTO userCreateDTO) {
-        if (userCreateDTO == null) {
+    public static KeycloakUserRegisterRequest toKeycloakUserRegisterRequest(UserCreateRequestDTO userCreateRequestDTO) {
+        if (userCreateRequestDTO == null) {
             return null;
         }
-        String lastName = userCreateDTO.lastName();
-        if (userCreateDTO.secondLastName() != null && !userCreateDTO.secondLastName().isEmpty()) {
-            lastName = lastName + " " + userCreateDTO.secondLastName();
+        String lastName = userCreateRequestDTO.lastName();
+        if (userCreateRequestDTO.secondLastName() != null && !userCreateRequestDTO.secondLastName().isEmpty()) {
+            lastName = lastName + " " + userCreateRequestDTO.secondLastName();
         }
         return new KeycloakUserRegisterRequest(
-                userCreateDTO.username(),
-                userCreateDTO.email(),
-                userCreateDTO.password(),
-                userCreateDTO.roles(),
-                userCreateDTO.firstName(),
+                userCreateRequestDTO.username(),
+                userCreateRequestDTO.email(),
+                userCreateRequestDTO.password(),
+                userCreateRequestDTO.roles(),
+                userCreateRequestDTO.firstName(),
                 lastName
         );
     }

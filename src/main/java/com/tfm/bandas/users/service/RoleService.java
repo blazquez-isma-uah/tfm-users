@@ -2,7 +2,7 @@ package com.tfm.bandas.users.service;
 
 import com.tfm.bandas.users.dto.KeycloakRoleRegisterRequest;
 import com.tfm.bandas.users.dto.KeycloakRoleResponse;
-import com.tfm.bandas.users.dto.UserResponseDTO;
+import com.tfm.bandas.users.dto.UserDTO;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ public interface RoleService {
     KeycloakRoleResponse getRoleByName(String roleName);
     List<KeycloakRoleResponse> listUserRoles(String userId);
     List<KeycloakRoleResponse> listUserRolesByUsername(String username);
-    UserResponseDTO assignRoleToUser(Long userId, String roleName);
-    UserResponseDTO removeRoleFromUser(Long userId, String roleName);
-    UserResponseDTO updateUserRoles(Long userId, List<String> roleNames);
+    UserDTO assignRoleToUser(Long userId, String roleName, int ifMatchVersion);
+    UserDTO removeRoleFromUser(Long userId, String roleName, int ifMatchVersion);
+    UserDTO updateUserRoles(Long userId, List<String> roleNames, int ifMatchVersion);
 }

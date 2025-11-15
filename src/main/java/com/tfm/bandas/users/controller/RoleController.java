@@ -2,11 +2,13 @@ package com.tfm.bandas.users.controller;
 
 import com.tfm.bandas.users.dto.KeycloakRoleRegisterRequest;
 import com.tfm.bandas.users.dto.KeycloakRoleResponse;
-import com.tfm.bandas.users.dto.UserResponseDTO;
+import com.tfm.bandas.users.dto.UserDTO;
 import com.tfm.bandas.users.service.RoleService;
+import com.tfm.bandas.users.utils.EtagUtils;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -79,25 +81,31 @@ public class RoleController {
     }
 
     @PutMapping("/user/{userId}")
-    public ResponseEntity<UserResponseDTO> updateUserRoles(@PathVariable Long userId, @RequestBody List<String> roleNames) {
-        logger.info("Calling updateUserRoles with userId: {} and roleNames: {}", userId, roleNames);
-        UserResponseDTO response = roleService.updateUserRoles(userId, roleNames);
+    public ResponseEntity<UserDTO> updateUserRoles(@PathVariable Long userId, @RequestBody List<String> roleNames,
+                                                   @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+        logger.info("Calling updateUserRoles with userId: {} and roleNames: {}, ifMatch: {}", userId, roleNames, ifMatch);
+        int version = EtagUtils.parseIfMatchToVersion(ifMatch);
+        UserDTO response = roleService.updateUserRoles(userId, roleNames, version);
         logger.info("updateUserRoles returning: {}", response);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/user/{userId}/{roleName}")
-    public ResponseEntity<UserResponseDTO> assignRoleToUser(@PathVariable Long userId, @PathVariable String roleName) {
-        logger.info("Calling assignRealmRole with userId: {}, roleName: {}", userId, roleName);
-        UserResponseDTO response = roleService.assignRoleToUser(userId, roleName);
+    public ResponseEntity<UserDTO> assignRoleToUser(@PathVariable Long userId, @PathVariable String roleName,
+                                                    @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+        logger.info("Calling assignRealmRole with userId: {}, roleName: {}, ifMatch: {}", userId, roleName, ifMatch);
+        int version = EtagUtils.parseIfMatchToVersion(ifMatch);
+        UserDTO response = roleService.assignRoleToUser(userId, roleName, version);
         logger.info("assignRealmRole returning: {}", response);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/user/{userId}/{roleName}")
-    public ResponseEntity<UserResponseDTO> removeRoleFromUser(@PathVariable Long userId, @PathVariable String roleName) {
-        logger.info("Calling removeRealmRole with userId: {}, roleName: {}", userId, roleName);
-        UserResponseDTO response = roleService.removeRoleFromUser(userId, roleName);
+    public ResponseEntity<UserDTO> removeRoleFromUser(@PathVariable Long userId, @PathVariable String roleName,
+                                                      @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+        logger.info("Calling removeRealmRole with userId: {}, roleName: {}, ifMatch: {}", userId, roleName, ifMatch);
+        int version = EtagUtils.parseIfMatchToVersion(ifMatch);
+        UserDTO response = roleService.removeRoleFromUser(userId, roleName, version);
         logger.info("removeRealmRole returning: {}", response);
         return ResponseEntity.ok(response);
     }

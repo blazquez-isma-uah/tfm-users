@@ -3,8 +3,9 @@ package com.tfm.bandas.users.service.impl;
 import com.tfm.bandas.users.client.IdentityFeignClient;
 import com.tfm.bandas.users.dto.KeycloakRoleRegisterRequest;
 import com.tfm.bandas.users.dto.KeycloakRoleResponse;
-import com.tfm.bandas.users.dto.UserResponseDTO;
+import com.tfm.bandas.users.dto.UserDTO;
 import com.tfm.bandas.users.dto.mapper.UserProfileMapper;
+import com.tfm.bandas.users.exception.NotFoundException;
 import com.tfm.bandas.users.model.entity.UserProfileEntity;
 import com.tfm.bandas.users.model.repository.UserRepository;
 import com.tfm.bandas.users.service.RoleService;
@@ -14,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.tfm.bandas.users.utils.EtagUtils.compareVersion;
 
 @Service
 @RequiredArgsConstructor
@@ -50,7 +53,7 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public List<KeycloakRoleResponse> listUserRoles(String userId) {
         String iamId = userRepo.findById(Long.parseLong(userId))
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId))
+                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId))
                 .getIamId();
         return identityFeignClient.listUserRoles(iamId);
     }
@@ -58,16 +61,17 @@ public class RoleServiceImpl implements RoleService {
     @Override
     public List<KeycloakRoleResponse> listUserRolesByUsername(String username) {
         String iamId = userRepo.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with username: " + username))
+                .orElseThrow(() -> new NotFoundException("User not found with username: " + username))
                 .getIamId();
         return identityFeignClient.listUserRoles(iamId);
     }
 
     @Override
     @Transactional
-    public UserResponseDTO assignRoleToUser(Long userId, String roleName) {
+    public UserDTO assignRoleToUser(Long userId, String roleName, int ifMatchVersion) {
         UserProfileEntity user = userRepo.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId));
+        compareVersion(ifMatchVersion, user.getVersion());
 
         identityFeignClient.assignRoleToUser(user.getIamId(), roleName);
         try {
@@ -81,7 +85,7 @@ public class RoleServiceImpl implements RoleService {
                     user.setRoleNames(roleNames + "," + roleName);
                 }
             }
-            UserProfileEntity userProfile = userRepo.save(user);
+            UserProfileEntity userProfile = userRepo.saveAndFlush(user);
             return UserProfileMapper.toDTO(userProfile);
         } catch (Exception e) {
             // Si se produce un error en la base de datos, desasignar el rol en Keycloak
@@ -92,9 +96,11 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
-    public UserResponseDTO removeRoleFromUser(Long userId, String roleName) {
+    public UserDTO removeRoleFromUser(Long userId, String roleName, int ifMatchVersion) {
         UserProfileEntity user = userRepo.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId));
+        compareVersion(ifMatchVersion, user.getVersion());
+
         identityFeignClient.removeRoleFromUser(user.getIamId(), roleName);
         try {
             // Quitar el rol de role_names
@@ -104,7 +110,7 @@ public class RoleServiceImpl implements RoleService {
                 if (rolesList.contains(roleName)) {
                     rolesList.remove(roleName);
                     user.setRoleNames(String.join(",", rolesList));
-                    UserProfileEntity userProfile = userRepo.save(user);
+                    UserProfileEntity userProfile = userRepo.saveAndFlush(user);
                     return UserProfileMapper.toDTO(userProfile);
                 }
             }
@@ -118,9 +124,10 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional
-    public UserResponseDTO updateUserRoles(Long userId, List<String> roleNames) {
+    public UserDTO updateUserRoles(Long userId, List<String> roleNames, int ifMatchVersion) {
         UserProfileEntity user = userRepo.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + userId));
+                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId));
+        compareVersion(ifMatchVersion, user.getVersion());
         // Obtener los roles actuales del usuario
         List<KeycloakRoleResponse> currentRoles = identityFeignClient.listUserRoles(user.getIamId());
         List<String> currentRoleNames = new ArrayList<>();
@@ -141,6 +148,6 @@ public class RoleServiceImpl implements RoleService {
         }
         // Actualizar roleNames en la base de datos
         user.setRoleNames(roleNames.isEmpty() ? "" : String.join(",", roleNames));
-        return UserProfileMapper.toDTO(userRepo.save(user));
+        return UserProfileMapper.toDTO(userRepo.saveAndFlush(user));
     }
 }
