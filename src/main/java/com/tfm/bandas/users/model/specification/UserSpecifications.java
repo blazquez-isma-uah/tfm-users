@@ -44,4 +44,10 @@ public class UserSpecifications {
             return cb.equal(instruments.get("id"), instrumentId);
         };
     }
+
+    // Specification para filtrar usuarios que tienen un rol específico utilizando el campo role_names de UserProfileEntity
+    public static Specification<UserProfileEntity> hasRole(String roleName) {
+        return (root, query, cb) ->
+                roleName == null ? null : cb.like(cb.upper(root.get("roleNames")), "%" + roleName.toUpperCase() + "%");
+    }
 }

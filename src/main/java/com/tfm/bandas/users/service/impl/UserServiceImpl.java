@@ -267,7 +267,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Page<UserDTO> searchUsers(String username, String firstName, String lastName, String secondLastName,
-                                     String email, Boolean active, Long instrumentId, Pageable pageable) {
+                                     String email, Boolean active, Long instrumentId, String role, Pageable pageable) {
         Specification<UserProfileEntity> spec = Specification.allOf(
                 UserSpecifications.usernameContains(username),
                 UserSpecifications.firstNameContains(firstName),
@@ -275,7 +275,8 @@ public class UserServiceImpl implements UserService {
                 UserSpecifications.secondLastNameContains(secondLastName),
                 UserSpecifications.emailContains(email),
                 UserSpecifications.activeIs(active),
-                UserSpecifications.hasInstrument(instrumentId)
+                UserSpecifications.hasInstrument(instrumentId),
+                UserSpecifications.hasRole(role)
         );
 
         return userRepo.findAll(spec, pageable).map(UserProfileMapper::toDTO);

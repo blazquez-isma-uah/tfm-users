@@ -23,5 +23,5 @@ public interface UserService {
     UserDTO removeInstrumentFromUser(Long userId, Long instrumentId, int ifMatchVersion);
     UserDTO updateUserInstruments(Long userId, Set<Long> instrumentIds, int ifMatchVersion);
     Page<UserDTO> searchUsers(String username, String firstName, String lastName, String secondLastName,
-                              String email, Boolean active, Long instrumentId, Pageable pageable);
+                              String email, Boolean active, Long instrumentId, String role, Pageable pageable);
 }

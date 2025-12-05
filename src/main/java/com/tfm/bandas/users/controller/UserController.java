@@ -127,12 +127,13 @@ public class UserController {
             @RequestParam(required = false) String email,
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) Long instrumentId,
+            @RequestParam(required = false) String role,
             @PageableDefault(size = 10) Pageable pageable) {
 
-        logger.info("Calling searchUsers with username: {}, firstName: {}, lastName: {}, email: {}, active: {}, instrumentId: {}, pageable: {}",
-                username, firstName, lastName, email, active, instrumentId, pageable);
+        logger.info("Calling searchUsers with username: {}, firstName: {}, lastName: {}, email: {}, active: {}, instrumentId: {}, role:{}, pageable: {}",
+                username, firstName, lastName, email, active, instrumentId, role, pageable);
         PaginatedResponse<UserDTO> response = PaginatedResponse.from(
-                userService.searchUsers(username, firstName, lastName, secondLastName, email, active, instrumentId, pageable)
+                userService.searchUsers(username, firstName, lastName, secondLastName, email, active, instrumentId, role, pageable)
         );
         logger.info("searchUsers returning: {}", response);
         return ResponseEntity.ok(response);
