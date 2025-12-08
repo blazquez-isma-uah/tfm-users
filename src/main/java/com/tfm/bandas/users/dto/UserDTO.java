@@ -21,5 +21,5 @@ public record UserDTO(
         String profilePictureUrl,
         boolean active,
         Set<String> roles,
-        Set<String> instruments
+        Set<InstrumentDTO> instruments
 ) {}

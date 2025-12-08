@@ -39,7 +39,11 @@ public class UserProfileMapper {
                 userProfile.getProfilePictureUrl(),
                 userProfile.isActive(),
                 mapRoleNamesToSet(userProfile.getRoleNames()),
-                mapInstruments(userProfile.getInstruments())
+                userProfile.getInstruments() != null ?
+                        userProfile.getInstruments().stream()
+                                .map(InstrumentMapper::toDTO)
+                                .collect(Collectors.toSet())
+                        : Collections.emptySet()
         );
     }
 
@@ -83,7 +87,7 @@ public class UserProfileMapper {
     }
 
     // Convierte Set<InstrumentEntity> a Set<String> (instrumentName + " " + voice)
-    private static Set<String> mapInstruments(Set<InstrumentEntity> instruments) {
+    private static Set<String> mapInstrumentsToString(Set<InstrumentEntity> instruments) {
         if (instruments == null || instruments.isEmpty()) {
             return Collections.emptySet();
         }
