@@ -154,8 +154,8 @@ public class UserServiceImpl implements UserService {
             );
             kcUpdatedUser = identityFeignClient.updateUserData(userProfileOriginal.getIamId(), kcUserUpdate);
 
-            UserProfileEntity userProfileToUpdate = updateUserProfileData(dto, userProfileOriginal);
-            return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfileToUpdate));
+            updateUserProfileData(dto, userProfileOriginal);
+            return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfileOriginal));
         } catch (RuntimeException e) {
             if (kcUpdatedUser != null) {
                 // Intentar revertir los cambios en Keycloak
@@ -176,20 +176,18 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private UserProfileEntity updateUserProfileData(UserUpdateRequestDTO dto, UserProfileEntity userProfileOriginal) {
+    private void updateUserProfileData(UserUpdateRequestDTO dto, UserProfileEntity userProfile) {
         // NO se actualiza id, iamId, systemSignupDate, username → son inmutables
         // NO se actualiza active, roleNames, instruments → se hace con endpoints específicos
-        UserProfileEntity userProfileToUpdate = new UserProfileEntity(userProfileOriginal);
-        userProfileToUpdate.setFirstName(dto.firstName());
-        userProfileToUpdate.setLastName(dto.lastName());
-        userProfileToUpdate.setSecondLastName(dto.secondLastName());
-        userProfileToUpdate.setPhone(dto.phone());
-        userProfileToUpdate.setNotes(dto.notes());
-        userProfileToUpdate.setProfilePictureUrl(dto.profilePictureUrl());
-        userProfileToUpdate.setBirthDate(dto.birthDate());
-        userProfileToUpdate.setBandJoinDate(dto.bandJoinDate());
-        userProfileToUpdate.setEmail(dto.email());
-        return userProfileToUpdate;
+        userProfile.setFirstName(dto.firstName());
+        userProfile.setLastName(dto.lastName());
+        userProfile.setSecondLastName(dto.secondLastName());
+        userProfile.setPhone(dto.phone());
+        userProfile.setNotes(dto.notes());
+        userProfile.setProfilePictureUrl(dto.profilePictureUrl());
+        userProfile.setBirthDate(dto.birthDate());
+        userProfile.setBandJoinDate(dto.bandJoinDate());
+        userProfile.setEmail(dto.email());
     }
 
     @Override

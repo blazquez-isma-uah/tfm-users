@@ -16,6 +16,5 @@ public record UserUpdateRequestDTO(
         @Nullable String phone,
         @Nullable String notes,
         @Nullable String profilePictureUrl
-//        Set<Long> instrumentIds,
-//        Set<String> roles
+
 ) {}
