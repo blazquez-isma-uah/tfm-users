@@ -5,6 +5,8 @@ import com.tfm.bandas.users.model.entity.InstrumentEntity;
 import jakarta.persistence.criteria.Join;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.time.LocalDate;
+
 public class UserSpecifications {
 
     public static Specification<UserProfileEntity> usernameContains(String username) {
@@ -49,5 +51,32 @@ public class UserSpecifications {
     public static Specification<UserProfileEntity> hasRole(String roleName) {
         return (root, query, cb) ->
                 roleName == null ? null : cb.like(cb.upper(root.get("roleNames")), "%" + roleName.toUpperCase() + "%");
+    }
+
+
+    public static Specification<UserProfileEntity> birthDateBetween(LocalDate birthDateFrom, LocalDate birthDateTo) {
+        return dateBetween("birthDate", birthDateFrom, birthDateTo);
+    }
+
+    public static Specification<UserProfileEntity> bandJoinDateBetween(LocalDate bandJoinDateFrom, LocalDate bandJoinDateTo) {
+        return dateBetween("bandJoinDate", bandJoinDateFrom, bandJoinDateTo);
+    }
+
+    // Metodo común para rangos de fechas
+    private static Specification<UserProfileEntity> dateBetween(String attributeName, LocalDate from, LocalDate to) {
+        return (root, query, cb) -> {
+            if (from == null && to == null) return null;
+            LocalDate toDate = to;
+            // Si solo hay "from", la fecha "to" es hoy
+            if (from != null && toDate == null) {
+                toDate = LocalDate.now();
+            }
+            // Si solo hay "to", no hay límite inferior
+            if (from == null) {
+                return cb.lessThanOrEqualTo(root.get(attributeName), toDate);
+            }
+            // Si hay ambos, busca en el rango
+            return cb.between(root.get(attributeName), from, toDate);
+        };
     }
 }

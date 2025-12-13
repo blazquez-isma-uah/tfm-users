@@ -19,6 +19,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/users")
@@ -128,12 +131,17 @@ public class UserController {
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) Long instrumentId,
             @RequestParam(required = false) String role,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate birthDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate birthDateTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate bandJoinDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate bandJoinDateTo,
             @PageableDefault(size = 10) Pageable pageable) {
 
-        logger.info("Calling searchUsers with username: {}, firstName: {}, lastName: {}, email: {}, active: {}, instrumentId: {}, role:{}, pageable: {}",
-                username, firstName, lastName, email, active, instrumentId, role, pageable);
+        logger.info("Calling searchUsers with username: {}, firstName: {}, lastName: {}, email: {}, active: {}, instrumentId: {}, role:{}, birthDateFrom: {}, birthDateTo: {}, bandJoinDateFrom: {}, bandJoinDateTo: {}, pageable: {}",
+                username, firstName, lastName, email, active, instrumentId, role, birthDateFrom, birthDateTo, bandJoinDateFrom, bandJoinDateTo, pageable);
         PaginatedResponse<UserDTO> response = PaginatedResponse.from(
-                userService.searchUsers(username, firstName, lastName, secondLastName, email, active, instrumentId, role, pageable)
+                userService.searchUsers(username, firstName, lastName, secondLastName, email, active, instrumentId, role,
+                        birthDateFrom, birthDateTo, bandJoinDateFrom, bandJoinDateTo, pageable)
         );
         logger.info("searchUsers returning: {}", response);
         return ResponseEntity.ok(response);
