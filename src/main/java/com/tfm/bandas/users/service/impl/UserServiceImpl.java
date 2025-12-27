@@ -285,6 +285,57 @@ public class UserServiceImpl implements UserService {
         return userRepo.findAll(spec, pageable).map(UserProfileMapper::toDTO);
     }
 
+    @Override
+    @Transactional
+    public void updateMyPassword(String iamId, String newPassword) {
+        // Verificar que el usuario existe en la base de datos local
+        userRepo.findByIamId(iamId)
+                .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
+
+        // Actualizar la contraseña en Keycloak
+        try {
+            KeycloakUserPasswordUpdateRequest request = new KeycloakUserPasswordUpdateRequest(newPassword);
+            identityFeignClient.updateUserPassword(iamId, request);
+        } catch (FeignException fe) {
+            throw fe;
+        } catch (Exception e) {
+            throw new BadRequestException("Failed to update password in Keycloak. Cause: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public UserDTO updateMyProfile(String iamId, MyProfileUpdateRequestDTO dto) {
+        // Buscar el usuario por iamId
+        UserProfileEntity userProfile = userRepo.findByIamId(iamId)
+                .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
+
+        // Actualizar solo los campos permitidos
+        if (dto.firstName() != null) {
+            userProfile.setFirstName(dto.firstName());
+        }
+        if (dto.lastName() != null) {
+            userProfile.setLastName(dto.lastName());
+        }
+        if (dto.secondLastName() != null) {
+            userProfile.setSecondLastName(dto.secondLastName());
+        }
+        if (dto.phone() != null) {
+            userProfile.setPhone(dto.phone());
+        }
+        if (dto.notes() != null) {
+            userProfile.setNotes(dto.notes());
+        }
+        if (dto.profilePictureUrl() != null) {
+            userProfile.setProfilePictureUrl(dto.profilePictureUrl());
+        }
+        if (dto.birthDate() != null) {
+            userProfile.setBirthDate(dto.birthDate());
+        }
+
+        return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfile));
+    }
+
     private UserProfileEntity findUserOrThrow(Long userId) {
         return userRepo.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found with userId " + userId));

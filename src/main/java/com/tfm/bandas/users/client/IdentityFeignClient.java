@@ -30,11 +30,11 @@ public interface IdentityFeignClient {
     @PostMapping(PATH_USERS)
     KeycloakUserResponse createUserInKeycloak(@RequestBody KeycloakUserRegisterRequest dto);
 
-    @GetMapping(PATH_USERS + "/{id}")
-    KeycloakUserResponse getUserById(@PathVariable("id") String id);
+    @GetMapping(PATH_USERS + "/{userId}")
+    KeycloakUserResponse getUserById(@PathVariable("userId") String userId);
 
-    @GetMapping(PATH_USERS + "/{id}/details")
-    KeycloakUserDetailsResponse getUserDetailsById(@PathVariable("id") String id);
+    @GetMapping(PATH_USERS + "/{userId}/details")
+    KeycloakUserDetailsResponse getUserDetailsById(@PathVariable("userId") String userId);
 
     @GetMapping(PATH_USERS + "/username/{username}")
     KeycloakUserResponse getUserByUsername(@PathVariable("username") String username);
@@ -45,17 +45,17 @@ public interface IdentityFeignClient {
     @GetMapping(PATH_USERS)
     List<KeycloakUserResponse> listAllUsers();
 
-    @DeleteMapping(PATH_USERS + "/{id}")
-    void deleteUserByIamId(@PathVariable("id") String id);
+    @DeleteMapping(PATH_USERS + "/{userId}")
+    void deleteUserByIamId(@PathVariable("userId") String userId);
 
     @DeleteMapping(PATH_USERS + "/username/{username}")
     void deleteUserByUsername(@PathVariable("username") String username);
 
-    @PutMapping(PATH_USERS + "/{id}/password")
-    void updateUserPassword(@PathVariable("id") String id, @RequestBody KeycloakUserPasswordUpdateRequest dto);
+    @PutMapping(PATH_USERS + "/{userId}/password")
+    void updateUserPassword(@PathVariable("userId") String userId, @RequestBody KeycloakUserPasswordUpdateRequest dto);
 
-    @PutMapping(PATH_USERS + "/{id}")
-    KeycloakUserResponse updateUserData(@PathVariable("id") String id, @RequestBody KeycloakUserUpdateRequest dto);
+    @PutMapping(PATH_USERS + "/{userId}")
+    KeycloakUserResponse updateUserData(@PathVariable("userId") String userId, @RequestBody KeycloakUserUpdateRequest dto);
 
     @GetMapping(PATH_USERS + "/exists/username/{username}")
     Boolean userExistsByUsername(@PathVariable("username") String username);
@@ -74,21 +74,21 @@ public interface IdentityFeignClient {
     @PostMapping(PATH_ROLES)
     KeycloakRoleResponse createRealmRole(@RequestBody KeycloakRoleRegisterRequest dto);
 
-    @GetMapping(PATH_ROLES + "/{id}")
-    KeycloakRoleResponse getRoleById(@PathVariable("id") String id);
+    @GetMapping(PATH_ROLES + "/{roleId}")
+    KeycloakRoleResponse getRoleById(@PathVariable("roleId") String roleId);
 
-    @GetMapping(PATH_ROLES + "/name/{name}")
-    KeycloakRoleResponse getRoleByName(@PathVariable("name") String name);
+    @GetMapping(PATH_ROLES + "/name/{roleName}")
+    KeycloakRoleResponse getRoleByName(@PathVariable("roleName") String roleName);
 
-    @DeleteMapping(PATH_ROLES + "/{role}")
-    void deleteRealmRole(@PathVariable("role") String role);
+    @DeleteMapping(PATH_ROLES + "/{roleName}")
+    void deleteRealmRole(@PathVariable("roleName") String roleName);
 
-    @GetMapping(PATH_ROLES + "/user/{id}")
-    List<KeycloakRoleResponse> listUserRoles(@PathVariable("id") String userId);
+    @GetMapping(PATH_ROLES + "/user/{userId}")
+    List<KeycloakRoleResponse> listUserRoles(@PathVariable("userId") String userId);
 
-    @PostMapping(PATH_ROLES + "/user/{id}/{roleName}")
-    void assignRoleToUser(@PathVariable("id") String userId, @PathVariable("roleName") String roleName);
+    @PostMapping(PATH_ROLES + "/user/{userId}/{roleName}")
+    void assignRoleToUser(@PathVariable("userId") String userId, @PathVariable("roleName") String roleName);
 
-    @DeleteMapping(PATH_ROLES + "/user/{id}/{roleName}")
-    void removeRoleFromUser(@PathVariable("id") String userId, @PathVariable("roleName") String roleName);
+    @DeleteMapping(PATH_ROLES + "/user/{userId}/{roleName}")
+    void removeRoleFromUser(@PathVariable("userId") String userId, @PathVariable("roleName") String roleName);
 }

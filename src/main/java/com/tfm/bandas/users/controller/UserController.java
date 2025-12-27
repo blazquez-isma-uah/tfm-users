@@ -3,6 +3,8 @@ package com.tfm.bandas.users.controller;
 import com.tfm.bandas.users.dto.UserCreateRequestDTO;
 import com.tfm.bandas.users.dto.UserDTO;
 import com.tfm.bandas.users.dto.UserUpdateRequestDTO;
+import com.tfm.bandas.users.dto.PasswordUpdateRequestDTO;
+import com.tfm.bandas.users.dto.MyProfileUpdateRequestDTO;
 import com.tfm.bandas.users.service.UserService;
 import com.tfm.bandas.users.utils.EtagUtils;
 import com.tfm.bandas.users.utils.PaginatedResponse;
@@ -155,5 +157,27 @@ public class UserController {
         UserDTO response = userService.getUserByIamId(iamId);
         logger.info("getMyProfile returning: {}", response);
         return EtagUtils.withEtag(ResponseEntity.ok(), response.version(), response);
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<UserDTO> updateMyProfile(@AuthenticationPrincipal Jwt jwt,
+                                                    @RequestBody @Valid MyProfileUpdateRequestDTO dto) {
+        logger.info("Calling updateMyProfile with dto: {}", dto);
+        // El claim "sub" de JWT es el que corresponde al iamId
+        String iamId = jwt.getSubject();
+        UserDTO response = userService.updateMyProfile(iamId, dto);
+        logger.info("updateMyProfile returning: {}", response);
+        return EtagUtils.withEtag(ResponseEntity.ok(), response.version(), response);
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<Void> updateMyPassword(@AuthenticationPrincipal Jwt jwt,
+                                                  @RequestBody @Valid PasswordUpdateRequestDTO dto) {
+        logger.info("Calling updateMyPassword");
+        // El claim "sub" de JWT es el que corresponde al iamId
+        String iamId = jwt.getSubject();
+        userService.updateMyPassword(iamId, dto.newPassword());
+        logger.info("updateMyPassword completed for iamId: {}", iamId);
+        return ResponseEntity.noContent().build();
     }
 }

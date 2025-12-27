@@ -3,6 +3,7 @@ package com.tfm.bandas.users.service;
 import com.tfm.bandas.users.dto.UserCreateRequestDTO;
 import com.tfm.bandas.users.dto.UserDTO;
 import com.tfm.bandas.users.dto.UserUpdateRequestDTO;
+import com.tfm.bandas.users.dto.MyProfileUpdateRequestDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -28,4 +29,6 @@ public interface UserService {
                               LocalDate birthDateFrom, LocalDate birthDateTo,
                               LocalDate bandJoinDateFrom, LocalDate bandJoinDateTo,
                               Pageable pageable);
+    void updateMyPassword(String iamId, String newPassword);
+    UserDTO updateMyProfile(String iamId, MyProfileUpdateRequestDTO dto);
 }
