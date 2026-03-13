@@ -144,6 +144,12 @@ public class UserServiceImpl implements UserService {
 
         compareVersion(ifMatchVersion, userProfileOriginal.getVersion());
 
+        // Capture original Keycloak-relevant values before the entity is mutated
+        String originalEmail = userProfileOriginal.getEmail();
+        String originalFirstName = userProfileOriginal.getFirstName();
+        String originalLastName = userProfileOriginal.getLastName();
+        String originalSecondLastName = userProfileOriginal.getSecondLastName();
+
         KeycloakUserResponse kcUpdatedUser = null;
         try {
             KeycloakUserUpdateRequest kcUserUpdate = new KeycloakUserUpdateRequest(
@@ -158,13 +164,13 @@ public class UserServiceImpl implements UserService {
             return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfileOriginal));
         } catch (RuntimeException e) {
             if (kcUpdatedUser != null) {
-                // Intentar revertir los cambios en Keycloak
+                // Intentar revertir los cambios en Keycloak usando los valores originales
                 try {
                     KeycloakUserUpdateRequest kcUserRevert = new KeycloakUserUpdateRequest(
                             userProfileOriginal.getUsername(),
-                            userProfileOriginal.getEmail(),
-                            userProfileOriginal.getFirstName(),
-                            userProfileOriginal.getLastName() + " " + userProfileOriginal.getSecondLastName()
+                            originalEmail,
+                            originalFirstName,
+                            originalLastName + " " + originalSecondLastName
                     );
                     identityFeignClient.updateUserData(userProfileOriginal.getIamId(), kcUserRevert);
                 } catch (Exception ex) {
