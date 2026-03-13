@@ -12,10 +12,11 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: update  # Usar 'create' si quieres que borre y rehaga todo en cada arranque
-        # Usar 'update' para que actualice el esquema sin perder datos
+      # Usar 'create' si quieres que borre y rehaga todo en cada arranque
+      # Usar 'update' para que actualice el esquema sin perder datos
       # Usar 'validate' para validar el esquema sin hacer cambios
       # Usar 'none' para no hacer nada con el esquema
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true
