@@ -22,17 +22,38 @@ curl -i http://localhost:8080/api/users \
 
 
 
-## EJEMPLO PARA REFRESH DE TOKEN
-# Login para obtener token
-curl -X POST http://localhost:8080/auth/login \
--H "Content-Type: application/json" \
--d '{"email":"test@bandas.com","password":"123456"}'
+KC=http://localhost:8080
+curl -s -X POST "$KC/realms/tfm-bandas/protocol/openid-connect/token" \
+  -d grant_type=password \
+  -d client_id=frontend-local \
+  -d username=ismablazquez \
+  -d password=123456 | jq -r .access_token > /tmp/tok.txt
 
-# Refresh del token
-curl -X POST http://localhost:8080/auth/refresh \
--H "Authorization: Bearer <TOKEN_ACTUAL>"
+cat /tmp/tok.txt | awk -F. '{print $2}' | base64 -d 2>/dev/null | jq
+
+curl -i http://localhost:8081/api/users/20 \
+  -H "Authorization: Bearer $(cat /tmp/tok.txt)"
+
+curl -i -X DELETE http://localhost:8081/api/users/21 \
+  -H "Authorization: Bearer $(cat /tmp/tok.txt)"
+
+curl -i "http://localhost:8083/api/events?from=2025-10-01T00:00:00Z&to=2025-10-31T23:59:59Z" \
+  -H "Authorization: Bearer $(cat /tmp/tok.txt)"
 
 
+# BUSQUEDAS
+## Buscar usuarios activos con nombre parcial
+GET http://localhost:8080/api/users/search?firstName=luis&active=true&page=0&size=5
+Authorization: Bearer <token>
+
+## Buscar usuarios activos con nombre parcial
+GET http://localhost:8080/api/users/search?instrumentId=3
+
+## Buscar usuarios activos con nombre parcial
+GET http://localhost:8080/api/instruments/search?name=trompeta
+
+## Buscar usuarios activos con nombre parcial
+GET http://localhost:8080/api/instruments/search?voice=2
 
 
 

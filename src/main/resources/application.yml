@@ -1,36 +1,48 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
-      name: usuarios
+      name: users
   datasource:
-    url: jdbc:mysql://localhost:3307/bandas_db_user?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: bandas_user
-    password: bandas_pass
+    url: jdbc:mysql://localhost:3307/tfm_users?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: tfm_users_rw
+    password: tfm_users_password
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: create  # Usar 'create' si quieres que borre y rehaga todo en cada arranque
-                        # Usar 'update' para que actualice el esquema sin perder datos
-    show-sql: true
+      ddl-auto: update  # Usar 'create' si quieres que borre y rehaga todo en cada arranque
+        # Usar 'update' para que actualice el esquema sin perder datos
+      # Usar 'validate' para validar el esquema sin hacer cambios
+      # Usar 'none' para no hacer nada con el esquema
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
 
-  jackson:
-    serialization:
-      FAIL_ON_EMPTY_BEANS: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
 
-jwt:
-  expiration-ms: 7200000  # 2 horas
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/tfm-bandas
+          # Alternativa equivalente:
+          # jwk-set-uri: http://localhost:8080/realms/tfm/protocol/openid-connect/certs
+
 
 logging:
   level:
     org.springdoc: DEBUG
     org.springframework.web: INFO
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
 
 springdoc:
   swagger-ui:
@@ -47,3 +59,7 @@ management:
     health:
       probes:
         enabled: true
+
+identity:
+  service:
+    uri: http://localhost:8086
