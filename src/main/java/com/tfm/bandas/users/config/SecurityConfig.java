@@ -39,6 +39,9 @@ public class SecurityConfig {
                     .requestMatchers(PATTERNS_PERMITED).permitAll()
                     // Ajusta según tu API:
                     .requestMatchers(HttpMethod.GET, PATTERNS_AUTHENTICATED).hasAnyRole("ADMIN","MUSICIAN")
+                    // Endpoints para el usuario autenticado (/api/users/me/**) no deben requerir rol ADMIN
+                    .requestMatchers(HttpMethod.PUT, "/api/users/me/**").authenticated()
+                    .requestMatchers(HttpMethod.DELETE, "/api/users/me/**").authenticated()
                     .requestMatchers(HttpMethod.POST, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
                     .requestMatchers(HttpMethod.PUT, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
                     .requestMatchers(HttpMethod.DELETE, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
