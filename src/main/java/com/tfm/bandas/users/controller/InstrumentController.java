@@ -47,7 +47,7 @@ public class InstrumentController {
     }
 
     @PostMapping
-    public ResponseEntity<InstrumentDTO> createInstument(@RequestBody @Valid InstrumentRequestDTO dto) {
+    public ResponseEntity<InstrumentDTO> createInstrument(@RequestBody @Valid InstrumentRequestDTO dto) {
         logger.info("Calling create with dto: {}", dto);
         InstrumentDTO response = instrumentService.createInstrument(dto);
         logger.info("create returning: {}", response);
@@ -55,7 +55,7 @@ public class InstrumentController {
     }
 
     @PutMapping("/{instrumentId}")
-    public ResponseEntity<InstrumentDTO> updateInstument(@PathVariable Long instrumentId,
+    public ResponseEntity<InstrumentDTO> updateInstrument(@PathVariable Long instrumentId,
                                                          @RequestBody @Valid InstrumentRequestDTO dto,
                                                          @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
         logger.info("Calling update with instrumentId: {}, dto: {}, ifMatch: {}", instrumentId, dto, ifMatch);
@@ -66,7 +66,7 @@ public class InstrumentController {
     }
 
     @DeleteMapping("/{instrumentId}")
-    public ResponseEntity<Void> deleteInstument(@PathVariable Long instrumentId,
+    public ResponseEntity<Void> deleteInstrument(@PathVariable Long instrumentId,
                                                 @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
         logger.info("Calling delete with instrumentId: {}, ifMatch: {}", instrumentId, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
