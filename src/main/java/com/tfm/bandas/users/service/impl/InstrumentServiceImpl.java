@@ -65,7 +65,7 @@ public class InstrumentServiceImpl implements InstrumentService {
                 .orElseThrow(() -> new NotFoundException("Instrument not found: " + instrumentId));
         compareVersion(ifMatchVersion, instrument.getVersion());
         // Eliminar asignaciones de usuarios antes de borrar
-        userRepo.findAll().forEach(user -> user.getInstruments().remove(instrument));
+        userRepo.deleteInstrumentAssociationsByInstrumentId(instrumentId);
         instrumentRepo.delete(instrument);
     }
 
