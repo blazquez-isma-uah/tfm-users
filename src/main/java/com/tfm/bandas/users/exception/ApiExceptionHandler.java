@@ -1,7 +1,6 @@
 package com.tfm.bandas.users.exception;
 
 import feign.FeignException;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -71,6 +70,17 @@ public class ApiExceptionHandler {
     }
 
 
+    @ExceptionHandler(PreconditionRequiredException.class)
+    @ResponseStatus(HttpStatus.PRECONDITION_REQUIRED)
+    public Map<String, Object> handlePreconditionRequired(PreconditionRequiredException ex) {
+        return Map.of("error", "Precondition Required", "message", ex.getMessage());
+    }
+
+    @ExceptionHandler(PreconditionFailedException.class)
+    @ResponseStatus(HttpStatus.PRECONDITION_FAILED)
+    public Map<String, Object> handlePreconditionFailed(PreconditionFailedException ex) {
+        return Map.of("error", "Precondition Failed", "message", ex.getMessage());
+    }
 
 
 }
