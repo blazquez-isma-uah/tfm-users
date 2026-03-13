@@ -56,8 +56,8 @@ public class SecurityConfig {
      * Extrae los roles del realm del token JWT de Keycloak (realm_access.roles) y los convierte
      * en una colección de GrantedAuthority con el prefijo "ROLE_". Esto permite que Spring Security
      * reconozca y utilice estos roles para la autorización basada en roles.
-     * @param jwt
-     * @return
+     * @param jwt token JWT recibido en la solicitud, que contiene los claims emitidos por Keycloak.
+     * @return Una colección de GrantedAuthority que representa los roles del realm extraídos del token JWT, con el formato "ROLE_{rolename}".
      */
     private static Collection<GrantedAuthority> extractRealmRoles(Jwt jwt) {
         var out = new HashSet<SimpleGrantedAuthority>();
@@ -73,7 +73,8 @@ public class SecurityConfig {
         var cfg = new CorsConfiguration();
         cfg.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
         cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization","Content-Type"));
+        cfg.setAllowedHeaders(List.of("Authorization","Content-Type","If-Match"));
+        cfg.setExposedHeaders(List.of("ETag"));
         cfg.setAllowCredentials(true);
         var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cfg);

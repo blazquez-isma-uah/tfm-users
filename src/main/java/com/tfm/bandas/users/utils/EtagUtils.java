@@ -1,4 +1,3 @@
-// com.tfm.bandas.surveys.web.EtagUtils.java
 package com.tfm.bandas.users.utils;
 
 import com.tfm.bandas.users.exception.PreconditionFailedException;
