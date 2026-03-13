@@ -23,5 +23,23 @@ public record UserCreateRequestDTO(
         @Nullable String profilePictureUrl,
         Set<Long> instrumentIds,
         Set<String> roles
-) {}
-
+) {
+    @Override
+    public String toString() {
+        return "UserCreateRequestDTO[" +
+                "email=" + email() +
+                ", username=" + username() +
+                ", firstName=" + firstName() +
+                ", lastName=" + lastName() +
+                ", secondLastName=" + secondLastName() +
+                ", birthDate=" + birthDate() +
+                ", bandJoinDate=" + bandJoinDate() +
+                ", systemSignupDate=" + systemSignupDate() +
+                ", phone=" + phone() +
+                ", notes=" + notes() +
+                ", profilePictureUrl=" + profilePictureUrl() +
+                ", instrumentIds=" + instrumentIds() +
+                ", roles=" + roles() +
+                "]";
+    }
+}

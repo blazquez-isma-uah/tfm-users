@@ -182,3 +182,17 @@ curl -s -X POST http://localhost:8080/api/users   -H "Authorization: Bearer <TOK
     "password":"123456","roleIds":[2],"instrumentIds":[1]
   }'
 ```
+
+---
+
+## 🔒 Registro seguro (logs) — Importante
+
+No registrar objetos DTO que contengan datos sensibles (por ejemplo, contraseñas, tokens o identificadores personales). Recomendaciones prácticas:
+
+- No hacer `logger.info("... {}", dto)` si `dto` incluye campos sensibles.
+- Preferir sobreescribir `toString()` en los records/DTOs para ocultar o enmascarar campos sensibles (p. ej. mostrar `****` en lugar de la contraseña).
+- Alternativamente, loggear explícitamente únicamente los campos no sensibles, por ejemplo:
+  `logger.info("Calling createUser with username: {}, email: {}", dto.username(), dto.email());`
+- Añadir una verificación rápida en las revisiones de PR para detectar logs que impriman objetos enteros y asegurar que no contienen datos sensibles.
+
+Estos pasos ayudan a evitar filtraciones accidentales de contraseñas o información privada en los ficheros de log.

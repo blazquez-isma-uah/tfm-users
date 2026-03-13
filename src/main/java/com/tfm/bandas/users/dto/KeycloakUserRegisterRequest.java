@@ -12,4 +12,15 @@ public record KeycloakUserRegisterRequest(
         Set<String> roles,
         String firstName,
         String lastName
-) {}
+) {
+    @Override
+    public String toString() {
+        return "KeycloakUserRegisterRequest[" +
+                "username=" + username() +
+                ", email=" + email() +
+                ", roles=" + roles() +
+                ", firstName=" + firstName() +
+                ", lastName=" + lastName() +
+                "]";
+    }
+}
