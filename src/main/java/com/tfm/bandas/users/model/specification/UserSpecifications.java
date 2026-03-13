@@ -42,6 +42,7 @@ public class UserSpecifications {
     public static Specification<UserProfileEntity> hasInstrument(Long instrumentId) {
         return (root, query, cb) -> {
             if (instrumentId == null) return null;
+            query.distinct(true);
             Join<UserProfileEntity, InstrumentEntity> instruments = root.join("instruments");
             return cb.equal(instruments.get("id"), instrumentId);
         };
