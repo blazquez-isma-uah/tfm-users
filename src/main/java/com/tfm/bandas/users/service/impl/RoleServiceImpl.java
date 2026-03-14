@@ -26,6 +26,7 @@ public class RoleServiceImpl implements RoleService {
     private final UserRepository userRepo;
 
     @Override
+    @Transactional(readOnly = true)
     public List<KeycloakRoleResponse> getAllRoles() {
         return identityFeignClient.listAllRoles();
     }
@@ -41,16 +42,19 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public KeycloakRoleResponse getRoleById(String roleId) {
         return identityFeignClient.getRoleById(roleId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public KeycloakRoleResponse getRoleByName(String roleName) {
         return identityFeignClient.getRoleByName(roleName);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<KeycloakRoleResponse> listUserRoles(String userId) {
         String iamId = userRepo.findById(Long.parseLong(userId))
                 .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId))
@@ -59,6 +63,7 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<KeycloakRoleResponse> listUserRolesByUsername(String username) {
         String iamId = userRepo.findByUsername(username)
                 .orElseThrow(() -> new NotFoundException("User not found with username: " + username))

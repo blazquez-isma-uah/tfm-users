@@ -85,7 +85,7 @@ public class UserController {
 
     @PutMapping("/{userId}")
     public ResponseEntity<UserDTO> updateUser(@PathVariable Long userId, @RequestBody @Valid UserUpdateRequestDTO dto,
-                                              @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                              @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling updateUser with userId: {} and dto: {}, ifMatch: {}", userId, dto, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         UserDTO response = userService.updateUser(userId, dto, version);
@@ -95,7 +95,7 @@ public class UserController {
 
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long userId,
-                                           @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                           @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling deleteUser with userId: {}, ifMatch: {}", userId, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         userService.deleteUser(userId, version);
@@ -105,7 +105,7 @@ public class UserController {
 
     @PutMapping("/{userId}/disable")
     public ResponseEntity<Void> disableUser(@PathVariable Long userId,
-                                            @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                            @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling disableUser with userId: {}, ifMatch: {}", userId, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         userService.disableUser(userId, version);
@@ -115,7 +115,7 @@ public class UserController {
 
     @PutMapping("/{userId}/enable")
     public ResponseEntity<Void> enableUser(@PathVariable Long userId,
-                                           @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                           @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling enableUser with userId: {}, ifMatch: {}", userId, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         userService.enableUser(userId, version);

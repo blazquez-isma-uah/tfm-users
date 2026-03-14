@@ -67,7 +67,7 @@ public class UserProfileEntity {
     @Column(name = "profile_picture_url")
     private String profilePictureUrl; // URL de la foto de perfil del usuario
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "user_profile_instrument",
         joinColumns = @JoinColumn(name = "user_profile_id"),

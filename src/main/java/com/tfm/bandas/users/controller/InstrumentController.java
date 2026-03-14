@@ -31,7 +31,7 @@ public class InstrumentController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<PaginatedResponse<InstrumentDTO>> getAllInstuments(@PageableDefault(size = 10) Pageable pageable) {
+    public ResponseEntity<PaginatedResponse<InstrumentDTO>> getAllInstruments(@PageableDefault(size = 10) Pageable pageable) {
         logger.info("Calling getAll with pageable: {}", pageable);
         PaginatedResponse<InstrumentDTO> response = PaginatedResponse.from(instrumentService.getAllInstruments(pageable));
         logger.info("getAll returning: {}", response);
@@ -39,7 +39,7 @@ public class InstrumentController {
     }
 
     @GetMapping("/{instrumentId}")
-    public ResponseEntity<InstrumentDTO> getInstumentById(@PathVariable Long instrumentId) {
+    public ResponseEntity<InstrumentDTO> getInstrumentById(@PathVariable Long instrumentId) {
         logger.info("Calling getById with instrumentId: {}", instrumentId);
         InstrumentDTO response = instrumentService.getInstrumentById(instrumentId);
         logger.info("getById returning: {}", response);
@@ -57,7 +57,7 @@ public class InstrumentController {
     @PutMapping("/{instrumentId}")
     public ResponseEntity<InstrumentDTO> updateInstrument(@PathVariable Long instrumentId,
                                                          @RequestBody @Valid InstrumentRequestDTO dto,
-                                                         @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                                         @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling update with instrumentId: {}, dto: {}, ifMatch: {}", instrumentId, dto, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         InstrumentDTO response = instrumentService.updateInstrument(instrumentId, dto, version);
@@ -67,7 +67,7 @@ public class InstrumentController {
 
     @DeleteMapping("/{instrumentId}")
     public ResponseEntity<Void> deleteInstrument(@PathVariable Long instrumentId,
-                                                @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                                @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling delete with instrumentId: {}, ifMatch: {}", instrumentId, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         instrumentService.deleteInstrument(instrumentId, version);
@@ -88,7 +88,7 @@ public class InstrumentController {
 
     @PutMapping("/user/{userId}")
     public ResponseEntity<UserDTO> updateUserInstruments(@PathVariable Long userId, @RequestBody Set<Long> instrumentIds,
-                                                         @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                                         @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling assignInstruments with userId: {} and instrumentIds: {}, ifMatch: {}", userId, instrumentIds, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         UserDTO response = userService.updateUserInstruments(userId, instrumentIds, version);
@@ -98,7 +98,7 @@ public class InstrumentController {
 
     @PostMapping("/user/{userId}/{instrumentId}")
     public ResponseEntity<UserDTO> assignInstrumentToUser(@PathVariable Long userId, @PathVariable Long instrumentId,
-                                                          @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                                          @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling assignInstrumentToUser with userId: {} and instrumentId: {}, ifMatch: {}", userId, instrumentId, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         UserDTO response = userService.assignInstrumentToUser(userId, instrumentId, version);
@@ -108,7 +108,7 @@ public class InstrumentController {
 
     @DeleteMapping("/user/{userId}/{instrumentId}")
     public ResponseEntity<UserDTO> removeInstrumentFromUser(@PathVariable Long userId, @PathVariable Long instrumentId,
-                                                            @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                                            @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling removeInstrumentFromUser with userId: {} and instrumentId: {}, ifMatch: {}", userId, instrumentId, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         UserDTO response = userService.removeInstrumentFromUser(userId, instrumentId, version);

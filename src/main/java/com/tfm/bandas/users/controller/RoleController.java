@@ -82,7 +82,7 @@ public class RoleController {
 
     @PutMapping("/user/{userId}")
     public ResponseEntity<UserDTO> updateUserRoles(@PathVariable Long userId, @RequestBody List<String> roleNames,
-                                                   @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                                   @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling updateUserRoles with userId: {} and roleNames: {}, ifMatch: {}", userId, roleNames, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         UserDTO response = roleService.updateUserRoles(userId, roleNames, version);
@@ -92,7 +92,7 @@ public class RoleController {
 
     @PostMapping("/user/{userId}/{roleName}")
     public ResponseEntity<UserDTO> assignRoleToUser(@PathVariable Long userId, @PathVariable String roleName,
-                                                    @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                                    @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling assignRealmRole with userId: {}, roleName: {}, ifMatch: {}", userId, roleName, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         UserDTO response = roleService.assignRoleToUser(userId, roleName, version);
@@ -102,7 +102,7 @@ public class RoleController {
 
     @DeleteMapping("/user/{userId}/{roleName}")
     public ResponseEntity<UserDTO> removeRoleFromUser(@PathVariable Long userId, @PathVariable String roleName,
-                                                      @RequestHeader(name = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+                                                      @RequestHeader(name = HttpHeaders.IF_MATCH, required = true) String ifMatch) {
         logger.info("Calling removeRealmRole with userId: {}, roleName: {}, ifMatch: {}", userId, roleName, ifMatch);
         int version = EtagUtils.parseIfMatchToVersion(ifMatch);
         UserDTO response = roleService.removeRoleFromUser(userId, roleName, version);

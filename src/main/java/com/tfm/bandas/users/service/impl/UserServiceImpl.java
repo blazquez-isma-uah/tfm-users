@@ -14,6 +14,8 @@ import com.tfm.bandas.users.service.RoleService;
 import com.tfm.bandas.users.service.UserService;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -30,6 +32,7 @@ import static com.tfm.bandas.users.utils.EtagUtils.compareVersion;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
     private final UserRepository userRepo;
     private final InstrumentRepository instrumentRepo;
     private final IdentityFeignClient identityFeignClient;
@@ -113,6 +116,8 @@ public class UserServiceImpl implements UserService {
             if (dto.roles() != null && !dto.roles().isEmpty()) {
                 for(String roleName : dto.roles()) {
                     createdUserDTO = roleService.assignRoleToUser(userProfile.getId(), roleName, createdUserDTO.version());
+                    // Refrescar la entidad desde BD para obtener la versión actualizada
+                    userProfile = userRepo.findById(userProfile.getId()).orElse(userProfile);
                 }
             }
             return createdUserDTO;
@@ -123,8 +128,7 @@ public class UserServiceImpl implements UserService {
                 try {
                     identityFeignClient.deleteUserByIamId(keycloakId);
                 } catch (Exception ex) {
-                    // Loggear el error pero no hacer nada más
-                    System.err.println("Failed to clean up Keycloak user with IAM ID " + keycloakId + ": " + ex.getMessage());
+                    logger.error("Failed to clean up Keycloak user with IAM ID {}: {}", keycloakId, ex.getMessage(), ex);
                 }
             }
             throw e; // Re-lanzar la excepción original
@@ -156,7 +160,7 @@ public class UserServiceImpl implements UserService {
                     userProfileOriginal.getUsername(),
                     dto.email(),
                     dto.firstName(),
-                    dto.lastName() + " " + dto.secondLastName()
+                    buildFullLastName(dto.lastName(), dto.secondLastName())
             );
             kcUpdatedUser = identityFeignClient.updateUserData(userProfileOriginal.getIamId(), kcUserUpdate);
 
@@ -170,12 +174,11 @@ public class UserServiceImpl implements UserService {
                             userProfileOriginal.getUsername(),
                             originalEmail,
                             originalFirstName,
-                            originalLastName + " " + originalSecondLastName
+                            buildFullLastName(originalLastName, originalSecondLastName)
                     );
                     identityFeignClient.updateUserData(userProfileOriginal.getIamId(), kcUserRevert);
                 } catch (Exception ex) {
-                    // Loggear el error pero no hacer nada más
-                    System.err.println("Failed to revert Keycloak user with IAM ID " + userProfileOriginal.getIamId() + ": " + ex.getMessage());
+                    logger.error("Failed to revert Keycloak user with IAM ID {}: {}", userProfileOriginal.getIamId(), ex.getMessage(), ex);
                 }
             }
             throw e; // Re-lanzar la excepción original
@@ -194,6 +197,20 @@ public class UserServiceImpl implements UserService {
         userProfile.setBirthDate(dto.birthDate());
         userProfile.setBandJoinDate(dto.bandJoinDate());
         userProfile.setEmail(dto.email());
+    }
+
+    /**
+     * Construye el nombre completo de apellidos validando nulls.
+     * Concatena lastName y secondLastName solo si ambos existen.
+     */
+    private String buildFullLastName(String lastName, String secondLastName) {
+        if (lastName == null || lastName.isEmpty()) {
+            return secondLastName != null ? secondLastName : "";
+        }
+        if (secondLastName == null || secondLastName.isEmpty()) {
+            return lastName;
+        }
+        return lastName + " " + secondLastName;
     }
 
     @Override
@@ -303,6 +320,7 @@ public class UserServiceImpl implements UserService {
             KeycloakUserPasswordUpdateRequest request = new KeycloakUserPasswordUpdateRequest(newPassword);
             identityFeignClient.updateUserPassword(iamId, request);
         } catch (FeignException fe) {
+            // Propagar FeignException para que el handler lo traduzca según el upstream
             throw fe;
         } catch (Exception e) {
             throw new BadRequestException("Failed to update password in Keycloak. Cause: " + e.getMessage());
