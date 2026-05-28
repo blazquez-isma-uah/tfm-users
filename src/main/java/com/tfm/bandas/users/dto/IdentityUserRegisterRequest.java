@@ -5,7 +5,13 @@ import jakarta.validation.constraints.NotBlank;
 
 import java.util.Set;
 
-public record KeycloakUserRegisterRequest(
+/**
+ * Solicitud de creación de usuario hacia MS Identity.
+ * El campo roles no es consumido por Identity (la asignación de rol se hace
+ * en una llamada separada), pero MS Users lo usa internamente para orquestar
+ * la asignación tras recibir el iamId del usuario creado.
+ */
+public record IdentityUserRegisterRequest(
         @NotBlank String username,
         @Email String email,
         @NotBlank String password,
@@ -15,7 +21,7 @@ public record KeycloakUserRegisterRequest(
 ) {
     @Override
     public String toString() {
-        return "KeycloakUserRegisterRequest[" +
+        return "IdentityUserRegisterRequest[" +
                 "username=" + username() +
                 ", email=" + email() +
                 ", roles=" + roles() +

@@ -1,6 +1,6 @@
 package com.tfm.bandas.users.dto.mapper;
 
-import com.tfm.bandas.users.dto.KeycloakUserRegisterRequest;
+import com.tfm.bandas.users.dto.IdentityUserRegisterRequest;
 import com.tfm.bandas.users.dto.UserCreateRequestDTO;
 import com.tfm.bandas.users.dto.UserDTO;
 import com.tfm.bandas.users.model.entity.InstrumentEntity;
@@ -67,8 +67,8 @@ public class UserProfileMapper {
                 .build();
     }
 
-    // Convierte UserCreateDTO a KeycloakUserRegisterRequest
-    public static KeycloakUserRegisterRequest toKeycloakUserRegisterRequest(UserCreateRequestDTO userCreateRequestDTO) {
+    // Convierte UserCreateDTO a UserCreateRequestDTO
+    public static IdentityUserRegisterRequest toIdentityUserRegisterRequest(UserCreateRequestDTO userCreateRequestDTO) {
         if (userCreateRequestDTO == null) {
             return null;
         }
@@ -76,7 +76,7 @@ public class UserProfileMapper {
         if (userCreateRequestDTO.secondLastName() != null && !userCreateRequestDTO.secondLastName().isEmpty()) {
             lastName = lastName + " " + userCreateRequestDTO.secondLastName();
         }
-        return new KeycloakUserRegisterRequest(
+        return new IdentityUserRegisterRequest(
                 userCreateRequestDTO.username(),
                 userCreateRequestDTO.email(),
                 userCreateRequestDTO.password(),

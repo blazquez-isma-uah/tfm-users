@@ -85,12 +85,12 @@ public class UserServiceImpl implements UserService {
             throw new BadRequestException("User already registered with email: " + dto.email());
         }
 
-        String keycloakId = null;
+        String iamId = null;
         try {
-            KeycloakUserResponse kcUser = identityFeignClient.createUserInKeycloak(UserProfileMapper.toKeycloakUserRegisterRequest(dto));
-            keycloakId = kcUser.id();
+            IdentityUserResponse identityUser = identityFeignClient.createUser(UserProfileMapper.toIdentityUserRegisterRequest(dto));
+            iamId = identityUser.id();
             UserProfileEntity userProfile = UserProfileEntity.builder()
-                    .iamId(keycloakId)
+                    .iamId(iamId)
                     .systemSignupDate(dto.systemSignupDate() != null ? dto.systemSignupDate() : LocalDate.now())
                     .active(true)
                     .username(dto.username())
@@ -112,7 +112,7 @@ public class UserServiceImpl implements UserService {
             userProfile = userRepo.saveAndFlush(userProfile);
             UserDTO createdUserDTO = UserProfileMapper.toDTO(userProfile);
 
-            // Asignar roles en Keycloak y en base de datos
+            // Asignar roles en Identity y en base de datos
             if (dto.roles() != null && !dto.roles().isEmpty()) {
                 for(String roleName : dto.roles()) {
                     createdUserDTO = roleService.assignRoleToUser(userProfile.getId(), roleName, createdUserDTO.version());
@@ -123,12 +123,12 @@ public class UserServiceImpl implements UserService {
             return createdUserDTO;
 
         } catch (RuntimeException e) {
-            if(keycloakId != null) {
-                // Intentar limpiar el usuario creado en Keycloak
+            if(iamId != null) {
+                // Intentar limpiar el usuario creado en Identity
                 try {
-                    identityFeignClient.deleteUserByIamId(keycloakId);
+                    identityFeignClient.deleteUserById(iamId);
                 } catch (Exception ex) {
-                    logger.error("Failed to clean up Keycloak user with IAM ID {}: {}", keycloakId, ex.getMessage(), ex);
+                    logger.error("Failed to clean up Identity user with IAM ID {}: {}", iamId, ex.getMessage(), ex);
                 }
             }
             throw e; // Re-lanzar la excepción original
@@ -148,16 +148,14 @@ public class UserServiceImpl implements UserService {
 
         compareVersion(ifMatchVersion, userProfileOriginal.getVersion());
 
-        // Capture original Keycloak-relevant values before the entity is mutated
         String originalEmail = userProfileOriginal.getEmail();
         String originalFirstName = userProfileOriginal.getFirstName();
         String originalLastName = userProfileOriginal.getLastName();
         String originalSecondLastName = userProfileOriginal.getSecondLastName();
 
-        KeycloakUserResponse kcUpdatedUser = null;
+        IdentityUserResponse kcUpdatedUser = null;
         try {
-            KeycloakUserUpdateRequest kcUserUpdate = new KeycloakUserUpdateRequest(
-                    userProfileOriginal.getUsername(),
+            IdentityUserUpdateRequest kcUserUpdate = new IdentityUserUpdateRequest(
                     dto.email(),
                     dto.firstName(),
                     buildFullLastName(dto.lastName(), dto.secondLastName())
@@ -168,17 +166,16 @@ public class UserServiceImpl implements UserService {
             return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfileOriginal));
         } catch (RuntimeException e) {
             if (kcUpdatedUser != null) {
-                // Intentar revertir los cambios en Keycloak usando los valores originales
+                // Intentar revertir los cambios en Identity usando los valores originales
                 try {
-                    KeycloakUserUpdateRequest kcUserRevert = new KeycloakUserUpdateRequest(
-                            userProfileOriginal.getUsername(),
+                    IdentityUserUpdateRequest kcUserRevert = new IdentityUserUpdateRequest(
                             originalEmail,
                             originalFirstName,
                             buildFullLastName(originalLastName, originalSecondLastName)
                     );
                     identityFeignClient.updateUserData(userProfileOriginal.getIamId(), kcUserRevert);
                 } catch (Exception ex) {
-                    logger.error("Failed to revert Keycloak user with IAM ID {}: {}", userProfileOriginal.getIamId(), ex.getMessage(), ex);
+                    logger.error("Failed to revert Identity user with IAM ID {}: {}", userProfileOriginal.getIamId(), ex.getMessage(), ex);
                 }
             }
             throw e; // Re-lanzar la excepción original
@@ -200,8 +197,9 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * Construye el nombre completo de apellidos validando nulls.
-     * Concatena lastName y secondLastName solo si ambos existen.
+     * Combina primer y segundo apellido en un único campo para el proveedor de identidad.
+     * Cognito y Keycloak solo tienen un campo family_name, por lo que ambos apellidos
+     * se almacenan concatenados en ese campo.
      */
     private String buildFullLastName(String lastName, String secondLastName) {
         if (lastName == null || lastName.isEmpty()) {
@@ -217,16 +215,14 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deleteUser(Long userId, int ifMatchVersion) {
         UserProfileEntity userProfileToDelete = findUserOrThrow(userId);
-        if (userProfileToDelete != null) {
-            compareVersion(ifMatchVersion, userProfileToDelete.getVersion());
-            try {
-                identityFeignClient.deleteUserByIamId(userProfileToDelete.getIamId());
-            } catch (FeignException fe) {
-                // Propagar FeignException para que el handler lo traduzca según el upstream
-                throw fe;
-            } catch (Exception e) {
-                throw new BadRequestException("Failed to delete associated Keycloak user with IAM ID: " + userProfileToDelete.getIamId() + ". Cause: " + e.getMessage());
-            }
+        compareVersion(ifMatchVersion, userProfileToDelete.getVersion());
+        try {
+            identityFeignClient.deleteUserById(userProfileToDelete.getIamId());
+        } catch (FeignException fe) {
+            throw fe;
+        } catch (Exception e) {
+            throw new BadRequestException("Failed to delete identity provider user with IAM ID: "
+                    + userProfileToDelete.getIamId() + ". Cause: " + e.getMessage());
         }
         userRepo.deleteById(userId);
     }
@@ -276,9 +272,9 @@ public class UserServiceImpl implements UserService {
     public UserDTO updateUserInstruments(Long userId, Set<Long> instrumentIds, int ifMatchVersion) {
         UserProfileEntity userProfile = findUserOrThrow(userId);
         if (instrumentIds != null) {
-            Set<InstrumentEntity> instruments =
-                    instrumentIds.isEmpty() ? new HashSet<>() :
-                    new HashSet<>(instrumentRepo.findAllById(instrumentIds));
+            Set<InstrumentEntity> instruments = instrumentIds.isEmpty()
+                    ? new HashSet<>()
+                    : new HashSet<>(instrumentRepo.findAllById(instrumentIds));
             userProfile.setInstruments(instruments);
         }
         compareVersion(ifMatchVersion, userProfile.getVersion());
@@ -287,8 +283,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<UserDTO> searchUsers(String username, String firstName, String lastName, String secondLastName,
-                                     String email, Boolean active, Long instrumentId, String role,
+    public Page<UserDTO> searchUsers(String username, String firstName, String lastName,
+                                     String secondLastName, String email, Boolean active,
+                                     Long instrumentId, String role,
                                      LocalDate birthDateFrom, LocalDate birthDateTo,
                                      LocalDate bandJoinDateFrom, LocalDate bandJoinDateTo,
                                      Pageable pageable) {
@@ -315,15 +312,14 @@ public class UserServiceImpl implements UserService {
         userRepo.findByIamId(iamId)
                 .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
 
-        // Actualizar la contraseña en Keycloak
+        // Actualizar la contraseña en Identity
         try {
-            KeycloakUserPasswordUpdateRequest request = new KeycloakUserPasswordUpdateRequest(newPassword);
-            identityFeignClient.updateUserPassword(iamId, request);
+            identityFeignClient.updateUserPassword(iamId, new IdentityUserPasswordUpdateRequest(newPassword));
         } catch (FeignException fe) {
             // Propagar FeignException para que el handler lo traduzca según el upstream
             throw fe;
         } catch (Exception e) {
-            throw new BadRequestException("Failed to update password in Keycloak. Cause: " + e.getMessage());
+            throw new BadRequestException("Failed to update password in identity provider. Cause: " + e.getMessage());
         }
     }
 
@@ -334,28 +330,13 @@ public class UserServiceImpl implements UserService {
         UserProfileEntity userProfile = userRepo.findByIamId(iamId)
                 .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
 
-        // Actualizar solo los campos permitidos
-        if (dto.firstName() != null) {
-            userProfile.setFirstName(dto.firstName());
-        }
-        if (dto.lastName() != null) {
-            userProfile.setLastName(dto.lastName());
-        }
-        if (dto.secondLastName() != null) {
-            userProfile.setSecondLastName(dto.secondLastName());
-        }
-        if (dto.phone() != null) {
-            userProfile.setPhone(dto.phone());
-        }
-        if (dto.notes() != null) {
-            userProfile.setNotes(dto.notes());
-        }
-        if (dto.profilePictureUrl() != null) {
-            userProfile.setProfilePictureUrl(dto.profilePictureUrl());
-        }
-        if (dto.birthDate() != null) {
-            userProfile.setBirthDate(dto.birthDate());
-        }
+        if (dto.firstName() != null) userProfile.setFirstName(dto.firstName());
+        if (dto.lastName() != null) userProfile.setLastName(dto.lastName());
+        if (dto.secondLastName() != null) userProfile.setSecondLastName(dto.secondLastName());
+        if (dto.phone() != null) userProfile.setPhone(dto.phone());
+        if (dto.notes() != null) userProfile.setNotes(dto.notes());
+        if (dto.profilePictureUrl() != null) userProfile.setProfilePictureUrl(dto.profilePictureUrl());
+        if (dto.birthDate() != null) userProfile.setBirthDate(dto.birthDate());
 
         return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfile));
     }

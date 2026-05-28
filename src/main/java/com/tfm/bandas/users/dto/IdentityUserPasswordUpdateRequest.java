@@ -1,5 +1,5 @@
 package com.tfm.bandas.users.dto;
 
-public record KeycloakUserPasswordUpdateRequest(
+public record IdentityUserPasswordUpdateRequest(
     String newPassword
 ) {}

@@ -1,83 +1,60 @@
 package com.tfm.bandas.users.config;
 
-import com.tfm.bandas.users.utils.Constants;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import static com.tfm.bandas.users.utils.Constants.*;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-
-import static com.tfm.bandas.users.utils.Constants.PATTERNS_AUTHENTICATED;
-import static com.tfm.bandas.users.utils.Constants.PATTERNS_PERMITED;
 
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    private final JwtAuthConverter jwtAuthConverter;
+    private final CorsConfigurationSource corsConfigurationSource;
+
+    public SecurityConfig(
+            JwtAuthConverter jwtAuthConverter,
+            @Autowired(required = false) CorsConfigurationSource corsConfigurationSource) {
+        this.jwtAuthConverter = jwtAuthConverter;
+        this.corsConfigurationSource = corsConfigurationSource;
+    }
+
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        JwtAuthenticationConverter conv = new JwtAuthenticationConverter();
-        conv.setJwtGrantedAuthoritiesConverter(SecurityConfig::extractRealmRoles);
+        var conv = new JwtAuthenticationConverter();
+        conv.setJwtGrantedAuthoritiesConverter(jwtAuthConverter);
 
-        http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsCfg()))
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(PATTERNS_PERMITED).permitAll()
-                    // Ajusta según tu API:
-                    .requestMatchers(HttpMethod.GET, PATTERNS_AUTHENTICATED).hasAnyRole("ADMIN","MUSICIAN")
-                    // Endpoints para el usuario autenticado (/api/users/me/**) no deben requerir rol ADMIN
-                    .requestMatchers(HttpMethod.PUT, "/api/users/me/**").authenticated()
-                    .requestMatchers(HttpMethod.DELETE, "/api/users/me/**").authenticated()
-                    .requestMatchers(HttpMethod.POST, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.PUT, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.DELETE, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
-                    .anyRequest().authenticated()
-            )
-            .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(conv)));
+        http.csrf(AbstractHttpConfigurer::disable);
+
+        // CORS: activo en local (gestionado por Spring).
+        // En AWS lo gestiona API Gateway — se desactiva en Spring.
+        if (corsConfigurationSource != null) {
+            http.cors(cors -> cors.configurationSource(corsConfigurationSource));
+        } else {
+            http.cors(AbstractHttpConfigurer::disable);
+        }
+
+        http.authorizeHttpRequests(auth -> auth
+                        .requestMatchers(PATTERNS_PERMITED).permitAll()
+                        .requestMatchers(HttpMethod.GET, PATTERNS_AUTHENTICATED).hasAnyRole("ADMIN", "MUSICIAN")
+                        .requestMatchers(HttpMethod.PUT, "/api/users/me/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/me/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, PATTERNS_AUTHENTICATED).hasRole("ADMIN")
+                        .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(conv)));
 
         return http.build();
-    }
-
-    /**
-     * Extrae los roles del realm del token JWT de Keycloak (realm_access.roles) y los convierte
-     * en una colección de GrantedAuthority con el prefijo "ROLE_". Esto permite que Spring Security
-     * reconozca y utilice estos roles para la autorización basada en roles.
-     * @param jwt token JWT recibido en la solicitud, que contiene los claims emitidos por Keycloak.
-     * @return Una colección de GrantedAuthority que representa los roles del realm extraídos del token JWT, con el formato "ROLE_{rolename}".
-     */
-    private static Collection<GrantedAuthority> extractRealmRoles(Jwt jwt) {
-        var out = new HashSet<SimpleGrantedAuthority>();
-        var realm = jwt.getClaimAsMap(Constants.REALM_ACCESS);
-        if (realm != null && realm.get(Constants.ROLES) instanceof List<?> roles) {
-            for (Object r : roles) out.add(new SimpleGrantedAuthority("ROLE_" + r.toString()));
-        }
-        return new HashSet<>(out);
-    }
-
-    @Bean
-    CorsConfigurationSource corsCfg() {
-        var cfg = new CorsConfiguration();
-        cfg.setAllowedOrigins(List.of("http://localhost:3000", "http://localhost:5173"));
-        cfg.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
-        cfg.setAllowedHeaders(List.of("Authorization","Content-Type","If-Match"));
-        cfg.setExposedHeaders(List.of("ETag"));
-        cfg.setAllowCredentials(true);
-        var source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg);
-        return source;
     }
 }
