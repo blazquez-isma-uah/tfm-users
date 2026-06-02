@@ -32,7 +32,7 @@ COPY --from=build /app/target/*.jar /app/app.jar
 EXPOSE 8080
 
 # Variables típicas (puedes sobreescribirlas en compose/Actions)
-ENV SPRING_PROFILES_ACTIVE=prod \
+ENV SPRING_PROFILES_ACTIVE=docker \
     JAVA_OPTS=""
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

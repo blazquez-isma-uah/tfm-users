@@ -73,6 +73,7 @@ public class UserProfileEntity {
         joinColumns = @JoinColumn(name = "user_profile_id"),
         inverseJoinColumns = @JoinColumn(name = "instrument_id")
     )
+    @Builder.Default
     private Set<InstrumentEntity> instruments = new HashSet<>();
 
     // String informativo con los roles asignados al usuario
@@ -100,5 +101,6 @@ public class UserProfileEntity {
         this.profilePictureUrl = userProfileEntity.profilePictureUrl;
         this.instruments = new HashSet<>(userProfileEntity.instruments);
         this.roleNames = userProfileEntity.roleNames;
+        this.version = userProfileEntity.version;
     }
 }
