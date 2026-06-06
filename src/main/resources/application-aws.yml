@@ -1,5 +1,12 @@
 # Perfil activo cuando SPRING_PROFILES_ACTIVE=aws (Lambda en producción)
 spring:
+  main:
+    # Fuerza el modo Servlet en Lambda.
+    # aws-serverless-java-container arranca Spring en modo reactivo cuando
+    # detecta spring-boot-starter-webflux en el classpath. SecurityConfig
+    # usa HttpSecurity que solo existe en el contexto Servlet, no en el reactivo.
+    # Esta propiedad fuerza el modo correcto independientemente del classpath.
+    web-application-type: servlet
   datasource:
     # URL completa proporcionada por SSM Parameter Store via variable de entorno Lambda
     url: ${DB_URL}
@@ -21,8 +28,21 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          # JWKS de Cognito
+          # JWKS de Cognito para validar la firma del token
           jwk-set-uri: ${COGNITO_JWKS_URI}
+          # Issuer de Cognito para validar el claim "iss" del token
+          issuer-uri: ${COGNITO_ISSUER_URI}
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            # Timeout de conexion TCP
+            connectTimeout: 5000
+            # Timeout de lectura de respuesta: debe ser mayor que el cold start
+            # de cualquier Lambda llamada via Feign (~10s en el peor caso)
+            readTimeout: 25000
 
 # URL base de MS Identity en AWS: URL de API Gateway
 # El valor se inyecta como variable de entorno Lambda desde CDK
