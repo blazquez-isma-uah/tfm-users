@@ -1,10 +1,13 @@
 package com.tfm.bandas.users.dto;
 
-public record IdentityUserDetailsResponse(
-    String id,
-    String username,
-    String email,
-    String firstName,
-    String lastName
-) {}
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record IdentityUserDetailsResponse(
+    @JsonProperty("id") String id,
+    @JsonProperty("username") String username,
+    @JsonProperty("email") String email,
+    @JsonProperty("firstName") String firstName,
+    @JsonProperty("lastName") String lastName
+) {}

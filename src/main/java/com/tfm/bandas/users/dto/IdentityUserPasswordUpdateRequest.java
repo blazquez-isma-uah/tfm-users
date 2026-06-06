@@ -1,5 +1,9 @@
 package com.tfm.bandas.users.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record IdentityUserPasswordUpdateRequest(
-    String newPassword
+    @JsonProperty("newPassword") String newPassword
 ) {}

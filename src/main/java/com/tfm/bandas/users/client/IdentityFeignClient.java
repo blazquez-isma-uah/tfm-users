@@ -3,6 +3,7 @@ package com.tfm.bandas.users.client;
 import com.tfm.bandas.users.config.FeignSecurityConfig;
 import com.tfm.bandas.users.dto.*;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,7 +27,7 @@ public interface IdentityFeignClient {
     // USERS (UserController)
     // =========================
 
-    @PostMapping(PATH_USERS)
+    @PostMapping(value = PATH_USERS, consumes = MediaType.APPLICATION_JSON_VALUE)
     IdentityUserResponse createUser(@RequestBody IdentityUserRegisterRequest dto);
 
     @GetMapping(PATH_USERS + "/{userId}")
@@ -50,12 +51,12 @@ public interface IdentityFeignClient {
     @DeleteMapping(PATH_USERS + "/username/{username}")
     void deleteUserByUsername(@PathVariable("username") String username);
 
-    @PutMapping(PATH_USERS + "/{userId}/password")
+    @PutMapping(value = PATH_USERS + "/{userId}/password", consumes = MediaType.APPLICATION_JSON_VALUE)
     void updateUserPassword(
             @PathVariable("userId") String userId,
             @RequestBody IdentityUserPasswordUpdateRequest dto);
 
-    @PutMapping(PATH_USERS + "/{userId}")
+    @PutMapping(value = PATH_USERS + "/{userId}", consumes = MediaType.APPLICATION_JSON_VALUE)
     IdentityUserResponse updateUserData(
             @PathVariable("userId") String userId,
             @RequestBody IdentityUserUpdateRequest dto);
@@ -74,7 +75,7 @@ public interface IdentityFeignClient {
     @GetMapping(PATH_ROLES)
     List<IdentityRoleResponse> listAllRoles();
 
-    @PostMapping(PATH_ROLES)
+    @PostMapping(value = PATH_ROLES, consumes = MediaType.APPLICATION_JSON_VALUE)
     IdentityRoleResponse createRole(@RequestBody IdentityRoleRegisterRequest dto);
 
     @GetMapping(PATH_ROLES + "/{roleId}")

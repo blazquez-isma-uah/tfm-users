@@ -64,7 +64,7 @@ public class ApiExceptionHandler {
         } catch (Exception e) {
             status = HttpStatus.BAD_GATEWAY;
         }
-        String msg = ex.contentUTF8();
+        String msg = ex.getMessage();
         return ResponseEntity.status(status)
                 .body(Map.of("error", "Upstream Error", "status", status.value(), "message", msg));
     }
