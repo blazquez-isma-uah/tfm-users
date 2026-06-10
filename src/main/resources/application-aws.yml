@@ -13,6 +13,17 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      # En Lambda cada instancia es single-threaded: una invocacion a la vez.
+      # Pool de 10 (defecto HikariCP) × instancias concurrentes × 3 MS agota
+      # rapidamente el max_connections de RDS db.t3.micro (~66-85 conexiones).
+      # Con pool de 2 por instancia: 2 × ~5 instancias × 3 MS = ~30 conexiones max.
+      maximum-pool-size: 2
+      minimum-idle: 1
+      # Falla rapido si no hay conexion disponible en lugar de esperar 30s (defecto).
+      # Sin esto, HikariCP espera 53 segundos antes de lanzar el error,
+      # lo que consume el timeout completo de Lambda sin respuesta util.
+      connection-timeout: 5000
   jpa:
     hibernate:
       ddl-auto: validate
