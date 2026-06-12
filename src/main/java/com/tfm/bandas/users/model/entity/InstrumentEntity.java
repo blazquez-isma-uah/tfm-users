@@ -34,6 +34,7 @@ public class InstrumentEntity {
 
     @ManyToMany(mappedBy = "instruments")
     @JsonIgnore
+    @Builder.Default
     private Set<UserProfileEntity> userProfiles = new HashSet<>();
 
     @Version

@@ -1,0 +1,62 @@
+# Perfil activo cuando SPRING_PROFILES_ACTIVE=aws (Lambda en producción)
+spring:
+  main:
+    # Fuerza el modo Servlet en Lambda.
+    # aws-serverless-java-container arranca Spring en modo reactivo cuando
+    # detecta spring-boot-starter-webflux en el classpath. SecurityConfig
+    # usa HttpSecurity que solo existe en el contexto Servlet, no en el reactivo.
+    # Esta propiedad fuerza el modo correcto independientemente del classpath.
+    web-application-type: servlet
+  datasource:
+    # URL completa proporcionada por SSM Parameter Store via variable de entorno Lambda
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      # En Lambda cada instancia es single-threaded: una invocacion a la vez.
+      # Pool de 10 (defecto HikariCP) × instancias concurrentes × 3 MS agota
+      # rapidamente el max_connections de RDS db.t3.micro (~66-85 conexiones).
+      # Con pool de 2 por instancia: 2 × ~5 instancias × 3 MS = ~30 conexiones max.
+      maximum-pool-size: 2
+      minimum-idle: 1
+      # Falla rapido si no hay conexion disponible en lugar de esperar 30s (defecto).
+      # Sin esto, HikariCP espera 53 segundos antes de lanzar el error,
+      # lo que consume el timeout completo de Lambda sin respuesta util.
+      connection-timeout: 5000
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # JWKS de Cognito para validar la firma del token
+          jwk-set-uri: ${COGNITO_JWKS_URI}
+          # Issuer de Cognito para validar el claim "iss" del token
+          issuer-uri: ${COGNITO_ISSUER_URI}
+
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            # Timeout de conexion TCP
+            connectTimeout: 5000
+            # Timeout de lectura de respuesta: debe ser mayor que el cold start
+            # de cualquier Lambda llamada via Feign (~10s en el peor caso)
+            readTimeout: 25000
+
+# URL base de MS Identity en AWS: URL de API Gateway
+# El valor se inyecta como variable de entorno Lambda desde CDK
+identity:
+  service:
+    uri: ${IDENTITY_SERVICE_URI}

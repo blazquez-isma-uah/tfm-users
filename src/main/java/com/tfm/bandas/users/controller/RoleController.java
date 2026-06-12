@@ -1,7 +1,7 @@
 package com.tfm.bandas.users.controller;
 
-import com.tfm.bandas.users.dto.KeycloakRoleRegisterRequest;
-import com.tfm.bandas.users.dto.KeycloakRoleResponse;
+import com.tfm.bandas.users.dto.IdentityRoleRegisterRequest;
+import com.tfm.bandas.users.dto.IdentityRoleResponse;
 import com.tfm.bandas.users.dto.UserDTO;
 import com.tfm.bandas.users.service.RoleService;
 import com.tfm.bandas.users.utils.EtagUtils;
@@ -24,17 +24,17 @@ public class RoleController {
     private final RoleService roleService;
 
     @GetMapping
-    public ResponseEntity<List<KeycloakRoleResponse>> getAllRoles() {
+    public ResponseEntity<List<IdentityRoleResponse>> getAllRoles() {
         logger.info("Calling getAllRoles");
-        List<KeycloakRoleResponse> response = roleService.getAllRoles();
+        List<IdentityRoleResponse> response = roleService.getAllRoles();
         logger.info("getAllRoles returning: {}", response);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping
-    public ResponseEntity<KeycloakRoleResponse> createRole(@RequestBody KeycloakRoleRegisterRequest role) {
+    public ResponseEntity<IdentityRoleResponse> createRole(@RequestBody IdentityRoleRegisterRequest role) {
         logger.info("Calling createRole with role: {}", role);
-        KeycloakRoleResponse response = roleService.createRole(role);
+        IdentityRoleResponse response = roleService.createRole(role);
         logger.info("createRole returning: {}", response);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -48,34 +48,34 @@ public class RoleController {
     }
 
     @GetMapping("/{roleId}")
-    public ResponseEntity<KeycloakRoleResponse> getRoleById(@PathVariable String roleId) {
+    public ResponseEntity<IdentityRoleResponse> getRoleById(@PathVariable String roleId) {
         logger.info("Calling getRoleById with roleId: {}", roleId);
-        KeycloakRoleResponse response = roleService.getRoleById(roleId);
+        IdentityRoleResponse response = roleService.getRoleById(roleId);
         logger.info("getRoleById returning: {}", response);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/name/{roleName}")
-    public ResponseEntity<KeycloakRoleResponse> getRoleByName(@PathVariable String roleName) {
+    public ResponseEntity<IdentityRoleResponse> getRoleByName(@PathVariable String roleName) {
         logger.info("Calling getRoleByName with roleName: {}", roleName);
-        KeycloakRoleResponse response = roleService.getRoleByName(roleName);
+        IdentityRoleResponse response = roleService.getRoleByName(roleName);
         logger.info("getRoleByName returning: {}", response);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<KeycloakRoleResponse>> listUserRoles(@PathVariable String userId) {
+    public ResponseEntity<List<IdentityRoleResponse>> listUserRoles(@PathVariable String userId) {
         logger.info("Calling listUserRoles with userId: {}", userId);
-        List<KeycloakRoleResponse> response = roleService.listUserRoles(userId);
+        List<IdentityRoleResponse> response = roleService.listUserRoles(userId);
         logger.info("listUserRoles returning: {}", response);
         return ResponseEntity.ok(response);
     }
 
     // listUserRoles by Username
     @GetMapping("/user/username/{username}")
-    public ResponseEntity<List<KeycloakRoleResponse>> listUserRolesByUsername(@PathVariable String username) {
+    public ResponseEntity<List<IdentityRoleResponse>> listUserRolesByUsername(@PathVariable String username) {
         logger.info("Calling listUserRolesByUsername with username: {}", username);
-        List<KeycloakRoleResponse> response = roleService.listUserRolesByUsername(username);
+        List<IdentityRoleResponse> response = roleService.listUserRolesByUsername(username);
         logger.info("listUserRolesByUsername returning: {}", response);
         return ResponseEntity.ok(response);
     }

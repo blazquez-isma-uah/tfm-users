@@ -1,8 +1,8 @@
 package com.tfm.bandas.users.service.impl;
 
 import com.tfm.bandas.users.client.IdentityFeignClient;
-import com.tfm.bandas.users.dto.KeycloakRoleRegisterRequest;
-import com.tfm.bandas.users.dto.KeycloakRoleResponse;
+import com.tfm.bandas.users.dto.IdentityRoleRegisterRequest;
+import com.tfm.bandas.users.dto.IdentityRoleResponse;
 import com.tfm.bandas.users.dto.UserDTO;
 import com.tfm.bandas.users.dto.mapper.UserProfileMapper;
 import com.tfm.bandas.users.exception.NotFoundException;
@@ -27,35 +27,35 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<KeycloakRoleResponse> getAllRoles() {
+    public List<IdentityRoleResponse> getAllRoles() {
         return identityFeignClient.listAllRoles();
     }
 
     @Override
-    public KeycloakRoleResponse createRole(KeycloakRoleRegisterRequest role) {
-        return identityFeignClient.createRealmRole(role);
+    public IdentityRoleResponse createRole(IdentityRoleRegisterRequest role) {
+        return identityFeignClient.createRole(role);
     }
 
     @Override
     public void deleteRole(String roleName) {
-        identityFeignClient.deleteRealmRole(roleName);
+        identityFeignClient.deleteRole(roleName);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public KeycloakRoleResponse getRoleById(String roleId) {
+    public IdentityRoleResponse getRoleById(String roleId) {
         return identityFeignClient.getRoleById(roleId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public KeycloakRoleResponse getRoleByName(String roleName) {
+    public IdentityRoleResponse getRoleByName(String roleName) {
         return identityFeignClient.getRoleByName(roleName);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<KeycloakRoleResponse> listUserRoles(String userId) {
+    public List<IdentityRoleResponse> listUserRoles(String userId) {
         String iamId = userRepo.findById(Long.parseLong(userId))
                 .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId))
                 .getIamId();
@@ -64,7 +64,7 @@ public class RoleServiceImpl implements RoleService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<KeycloakRoleResponse> listUserRolesByUsername(String username) {
+    public List<IdentityRoleResponse> listUserRolesByUsername(String username) {
         String iamId = userRepo.findByUsername(username)
                 .orElseThrow(() -> new NotFoundException("User not found with username: " + username))
                 .getIamId();
@@ -93,7 +93,7 @@ public class RoleServiceImpl implements RoleService {
             UserProfileEntity userProfile = userRepo.saveAndFlush(user);
             return UserProfileMapper.toDTO(userProfile);
         } catch (Exception e) {
-            // Si se produce un error en la base de datos, desasignar el rol en Keycloak
+            // Si se produce un error en la base de datos, desasignar el rol
             identityFeignClient.removeRoleFromUser(user.getIamId(), roleName);
             throw e;
         }
@@ -121,7 +121,7 @@ public class RoleServiceImpl implements RoleService {
             }
             return UserProfileMapper.toDTO(user);
         } catch (RuntimeException e) {
-            // Si se produce un error en la base de datos, reasignar el rol en Keycloak
+            // Si se produce un error en la base de datos, reasignar el rol
             identityFeignClient.assignRoleToUser(user.getIamId(), roleName);
             throw e;
         }
@@ -134,9 +134,9 @@ public class RoleServiceImpl implements RoleService {
                 .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId));
         compareVersion(ifMatchVersion, user.getVersion());
         // Obtener los roles actuales del usuario
-        List<KeycloakRoleResponse> currentRoles = identityFeignClient.listUserRoles(user.getIamId());
+        List<IdentityRoleResponse> currentRoles = identityFeignClient.listUserRoles(user.getIamId());
         List<String> currentRoleNames = new ArrayList<>();
-        for (KeycloakRoleResponse role : currentRoles) {
+        for (IdentityRoleResponse role : currentRoles) {
             currentRoleNames.add(role.name());
         }
         // Asignar roles que están en roleNames pero no en currentRoleNames

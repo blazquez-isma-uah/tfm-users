@@ -89,7 +89,7 @@
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
 			<artifactId>jjwt-impl</artifactId>
-			<version>0.11.5</version>
+			<version>0.12.6</version>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
@@ -136,6 +136,22 @@
 			<groupId>org.springframework.cloud</groupId>
 			<artifactId>spring-cloud-starter-openfeign</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.amazonaws.serverless</groupId>
+			<artifactId>aws-serverless-java-container-springboot3</artifactId>
+			<version>2.1.5</version>
+		</dependency>
+		<!-- CRaC (Coordinated Restore at Checkpoint): hooks de ciclo de vida
+     para SnapStart de Lambda. Lambda usa CRaC internamente para el
+     checkpoint/restore. Con esta dependencia en el classpath, Spring Boot
+     3.5.x activa automaticamente sus propios hooks CRaC (DataSource,
+     caches, etc.) y podemos registrar hooks propios para los componentes
+     que Spring no gestiona automaticamente (AWS SDK v2). -->
+		<dependency>
+			<groupId>org.crac</groupId>
+			<artifactId>crac</artifactId>
+			<version>1.5.0</version>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>
@@ -178,10 +194,15 @@
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
+			<!-- Fat JAR ejecutable para Docker Compose local.
+             Genera app-local.jar con la estructura BOOT-INF/ que Spring Boot
+             necesita para arrancar con 'java -jar'.
+             El classifier 'local' evita conflicto con el JAR que genera Shade. -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
+					<classifier>local</classifier>
 					<excludes>
 						<exclude>
 							<groupId>org.projectlombok</groupId>
@@ -194,6 +215,48 @@
 						<goals>
 							<goal>repackage</goal>
 						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Fat JAR plano para AWS Lambda.
+                 Shade descomprime todas las dependencias en la raiz del JAR, que es la estructura que el runtime de Lambda necesita.
+                 Reemplaza spring-boot-maven-plugin para el empaquetado Lambda.
+              -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.6.0</version>
+				<configuration>
+					<createDependencyReducedPom>false</createDependencyReducedPom>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<artifactSet>
+								<excludes>
+									<!-- Tomcat se excluye porque aws-serverless-java-container
+                                         actua como servidor de aplicaciones en Lambda -->
+									<exclude>org.apache.tomcat.embed:*</exclude>
+								</excludes>
+							</artifactSet>
+							<filters>
+								<filter>
+									<artifact>*:*</artifact>
+									<excludes>
+										<!-- Excluir ficheros de firma digital que causarian
+                                             SecurityException al mezclar JARs firmados -->
+										<exclude>META-INF/*.SF</exclude>
+										<exclude>META-INF/*.DSA</exclude>
+										<exclude>META-INF/*.RSA</exclude>
+									</excludes>
+								</filter>
+							</filters>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>
