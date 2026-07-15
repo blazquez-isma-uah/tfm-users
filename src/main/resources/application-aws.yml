@@ -14,16 +14,24 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      # En Lambda cada instancia es single-threaded: una invocacion a la vez.
+      # En Lambda cada instancia es single-threaded: una invocación a la vez.
       # Pool de 10 (defecto HikariCP) × instancias concurrentes × 3 MS agota
-      # rapidamente el max_connections de RDS db.t3.micro (~66-85 conexiones).
+      # rápidamente las conexiones disponibles en Aurora.
       # Con pool de 2 por instancia: 2 × ~5 instancias × 3 MS = ~30 conexiones max.
+      # Aurora Serverless v2 con 0.5 ACU soporta ~90 conexiones — holgado.
       maximum-pool-size: 2
       minimum-idle: 1
-      # Falla rapido si no hay conexion disponible en lugar de esperar 30s (defecto).
+      # Falla rápido si no hay conexión disponible en lugar de esperar 30s (defecto).
       # Sin esto, HikariCP espera 53 segundos antes de lanzar el error,
-      # lo que consume el timeout completo de Lambda sin respuesta util.
+      # lo que consume el timeout completo de Lambda sin respuesta útil.
       connection-timeout: 5000
+      # CAMBIO PARA AURORA SERVERLESS v2: no fallar en el arranque si Aurora está
+      # en estado de pausa (0 ACU). Con el valor por defecto (1ms), HikariCP lanzaría
+      # una excepción inmediatamente al intentar crear el pool sin conexión disponible,
+      # lo que cancelaría el ApplicationContext de Spring antes de que Flyway
+      # tenga oportunidad de reintentar. Con -1, el pool arranca vacío y la primera
+      # conexión real (Flyway) usa los reintentos configurados abajo.
+      initialization-fail-timeout: -1
   jpa:
     hibernate:
       ddl-auto: validate
@@ -35,6 +43,19 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    # CAMBIO PARA AURORA SERVERLESS v2: Aurora tarda ~15 segundos en reanudar desde
+    # el estado de pausa (0 ACU). Sin reintentos, Flyway fallaría en el primer intento
+    # de conexión y cancelaría el arranque del ApplicationContext, dejando el
+    # DispatcherServlet sin inicializar (NullPointerException en ServerlessMVC).
+    #
+    # Con connect-retries: 5 y connect-retries-interval: 2:
+    #   - Intento 1 (t=0s): falla — Aurora aún pausada, HikariCP timeout a los 5s
+    #   - Intento 2 (t=7s): falla — Aurora aún reanudando (lleva 7s)
+    #   - Intento 3 (t=14s): éxito — Aurora reanudada (~15s desde el primer intento)
+    # Tiempo total máximo de espera: 5 reintentos × (5s timeout + 2s intervalo) = 35s
+    # Dentro del timeout de Lambda de 45s con margen suficiente.
+    connect-retries: 5
+    connect-retries-interval: 2
   security:
     oauth2:
       resourceserver:
@@ -49,7 +70,7 @@ spring:
       client:
         config:
           default:
-            # Timeout de conexion TCP
+            # Timeout de conexión TCP
             connectTimeout: 5000
             # Timeout de lectura de respuesta: debe ser mayor que el cold start
             # de cualquier Lambda llamada via Feign (~10s en el peor caso)
