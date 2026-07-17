@@ -17,7 +17,6 @@ public record UserUpdateRequestDTO(
         @JsonProperty("birthDate") LocalDate birthDate,
         @JsonProperty("bandJoinDate") LocalDate bandJoinDate,
         @JsonProperty("phone") @Nullable String phone,
-        @JsonProperty("notes") @Nullable String notes,
-        @JsonProperty("profilePictureUrl") @Nullable String profilePictureUrl
+        @JsonProperty("notes") @Nullable String notes
 
 ) {}

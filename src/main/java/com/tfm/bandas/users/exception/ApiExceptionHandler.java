@@ -82,5 +82,10 @@ public class ApiExceptionHandler {
         return Map.of("error", "Precondition Failed", "message", ex.getMessage());
     }
 
+    @ExceptionHandler(FeatureNotAvailableException.class)
+    @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
+    public Map<String, Object> handleFeatureNotAvailable(FeatureNotAvailableException ex) {
+        return Map.of("error", "Not Implemented", "message", ex.getMessage());
+    }
 
 }

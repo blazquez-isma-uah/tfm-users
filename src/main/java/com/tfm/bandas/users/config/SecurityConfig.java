@@ -63,6 +63,10 @@ public class SecurityConfig {
                                 matcher.matcher(HttpMethod.DELETE, "/api/users/me/**")
                         ).authenticated()
                         .requestMatchers(
+                                matcher.matcher(HttpMethod.POST, "/api/users/picture/me/**"),
+                                matcher.matcher(HttpMethod.PUT, "/api/users/picture/me/**")
+                        ).authenticated()
+                        .requestMatchers(
                                 matcher.matcher(HttpMethod.POST, "/api/users/**"),
                                 matcher.matcher(HttpMethod.POST, "/api/roles/**"),
                                 matcher.matcher(HttpMethod.POST, "/api/instruments/**")

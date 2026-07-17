@@ -63,7 +63,6 @@ public class UserProfileMapper {
                 .systemSignupDate(userCreateRequestDTO.systemSignupDate())
                 .phone(userCreateRequestDTO.phone())
                 .notes(userCreateRequestDTO.notes())
-                .profilePictureUrl(userCreateRequestDTO.profilePictureUrl())
                 .build();
     }
 

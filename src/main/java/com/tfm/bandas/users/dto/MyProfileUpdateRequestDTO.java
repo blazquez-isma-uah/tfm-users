@@ -29,10 +29,6 @@ public record MyProfileUpdateRequestDTO(
     @JsonProperty("notes")
     String notes,
 
-    @Size(max = 255, message = "Profile picture URL must not exceed 255 characters")
-    @JsonProperty("profilePictureUrl")
-    String profilePictureUrl,
-
     @Past(message = "Birth date must be in the past")
     @JsonProperty("birthDate")
     LocalDate birthDate
