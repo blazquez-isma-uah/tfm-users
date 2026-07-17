@@ -100,7 +100,6 @@ public class UserServiceImpl implements UserService {
                     .email(dto.email())
                     .phone(dto.phone())
                     .notes(dto.notes())
-                    .profilePictureUrl(dto.profilePictureUrl())
                     .birthDate(dto.birthDate())
                     .bandJoinDate(dto.bandJoinDate())
                     .build();
@@ -190,7 +189,6 @@ public class UserServiceImpl implements UserService {
         userProfile.setSecondLastName(dto.secondLastName());
         userProfile.setPhone(dto.phone());
         userProfile.setNotes(dto.notes());
-        userProfile.setProfilePictureUrl(dto.profilePictureUrl());
         userProfile.setBirthDate(dto.birthDate());
         userProfile.setBandJoinDate(dto.bandJoinDate());
         userProfile.setEmail(dto.email());
@@ -335,7 +333,6 @@ public class UserServiceImpl implements UserService {
         if (dto.secondLastName() != null) userProfile.setSecondLastName(dto.secondLastName());
         if (dto.phone() != null) userProfile.setPhone(dto.phone());
         if (dto.notes() != null) userProfile.setNotes(dto.notes());
-        if (dto.profilePictureUrl() != null) userProfile.setProfilePictureUrl(dto.profilePictureUrl());
         if (dto.birthDate() != null) userProfile.setBirthDate(dto.birthDate());
 
         return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfile));

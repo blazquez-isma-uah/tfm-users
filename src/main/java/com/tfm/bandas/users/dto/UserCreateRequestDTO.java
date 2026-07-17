@@ -23,7 +23,6 @@ public record UserCreateRequestDTO(
         @JsonProperty("systemSignupDate") LocalDate systemSignupDate,
         @JsonProperty("phone") @Nullable String phone,
         @JsonProperty("notes") @Nullable String notes,
-        @JsonProperty("profilePictureUrl") @Nullable String profilePictureUrl,
         @JsonProperty("instrumentIds") Set<Long> instrumentIds,
         @JsonProperty("roles") Set<String> roles
 ) {
@@ -40,7 +39,6 @@ public record UserCreateRequestDTO(
                 ", systemSignupDate=" + systemSignupDate() +
                 ", phone=" + phone() +
                 ", notes=" + notes() +
-                ", profilePictureUrl=" + profilePictureUrl() +
                 ", instrumentIds=" + instrumentIds() +
                 ", roles=" + roles() +
                 "]";

@@ -141,6 +141,10 @@
 			<artifactId>aws-serverless-java-container-springboot3</artifactId>
 			<version>2.1.5</version>
 		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+		</dependency>
 		<!-- CRaC (Coordinated Restore at Checkpoint): hooks de ciclo de vida
      para SnapStart de Lambda. Lambda usa CRaC internamente para el
      checkpoint/restore. Con esta dependencia en el classpath, Spring Boot
@@ -167,6 +171,13 @@
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-dependencies</artifactId>
 				<version>${spring-cloud.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>2.47.6</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
