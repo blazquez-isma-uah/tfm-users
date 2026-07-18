@@ -4,6 +4,7 @@ import com.tfm.bandas.users.client.IdentityFeignClient;
 import com.tfm.bandas.users.dto.*;
 import com.tfm.bandas.users.dto.mapper.UserProfileMapper;
 import com.tfm.bandas.users.exception.BadRequestException;
+import com.tfm.bandas.users.exception.ConflictException;
 import com.tfm.bandas.users.exception.NotFoundException;
 import com.tfm.bandas.users.model.entity.InstrumentEntity;
 import com.tfm.bandas.users.model.entity.UserProfileEntity;
@@ -56,7 +57,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO getUserByEmail(String email) {
         return userRepo.findByEmail(email)
                 .map(UserProfileMapper::toDTO)
-                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el email " + email + "."));
     }
 
     @Override
@@ -64,7 +65,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO getUserByUsername(String username) {
         return userRepo.findByUsername(username) // Asumimos que el username es el email
                 .map(UserProfileMapper::toDTO)
-                .orElseThrow(() -> new NotFoundException("User not found with username: " + username));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el nombre de usuario " + username + "."));
     }
 
     @Override
@@ -72,17 +73,17 @@ public class UserServiceImpl implements UserService {
     public UserDTO getUserByIamId(String iamId) {
         return userRepo.findByIamId(iamId)
                 .map(UserProfileMapper::toDTO)
-                .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el IAM ID " + iamId + "."));
     }
 
     @Override
     @Transactional
     public UserDTO createUser(UserCreateRequestDTO dto) {
         if(userRepo.existsByUsername(dto.username())) {
-            throw new BadRequestException("User already registered with username: " + dto.username());
+            throw new ConflictException("Ya existe un usuario registrado con el nombre de usuario " + dto.username(), "USERNAME_EXISTS");
         }
         if (userRepo.existsByEmail(dto.email())) {
-            throw new BadRequestException("User already registered with email: " + dto.email());
+            throw new ConflictException("Ya existe un usuario registrado con el email " + dto.email(), "EMAIL_EXISTS");
         }
 
         String iamId = null;
@@ -142,7 +143,7 @@ public class UserServiceImpl implements UserService {
         // Si el email ha cambiado, hay que verificar que no exista otro usuario con ese email
         if (!userProfileOriginal.getEmail().equals(dto.email())
                 && userRepo.existsByEmail(dto.email())) {
-            throw new BadRequestException("Another user is already registered with email: " + dto.email());
+            throw new ConflictException("Ya existe otro usuario registrado con el email " + dto.email(), "EMAIL_EXISTS");
         }
 
         compareVersion(ifMatchVersion, userProfileOriginal.getVersion());
@@ -219,8 +220,8 @@ public class UserServiceImpl implements UserService {
         } catch (FeignException fe) {
             throw fe;
         } catch (Exception e) {
-            throw new BadRequestException("Failed to delete identity provider user with IAM ID: "
-                    + userProfileToDelete.getIamId() + ". Cause: " + e.getMessage());
+            logger.error("Failed to delete identity provider user with IAM ID {}: {}", userProfileToDelete.getIamId(), e.getMessage(), e);
+            throw new BadRequestException("No se ha podido eliminar el usuario en el proveedor de identidad.");
         }
         userRepo.deleteById(userId);
     }
@@ -248,7 +249,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO assignInstrumentToUser(Long userId, Long instrumentId, int ifMatchVersion) {
         UserProfileEntity userProfile = findUserOrThrow(userId);
         InstrumentEntity instrument = instrumentRepo.findById(instrumentId)
-                .orElseThrow(() -> new NotFoundException("Instrument not found with id " + instrumentId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún instrumento con el ID " + instrumentId + "."));
         compareVersion(ifMatchVersion, userProfile.getVersion());
         userProfile.getInstruments().add(instrument);
         return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfile));
@@ -259,7 +260,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO removeInstrumentFromUser(Long userId, Long instrumentId, int ifMatchVersion) {
         UserProfileEntity userProfile = findUserOrThrow(userId);
         InstrumentEntity instrument = instrumentRepo.findById(instrumentId)
-                .orElseThrow(() -> new NotFoundException("Instrument not found with id " + instrumentId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún instrumento con el ID " + instrumentId + "."));
         compareVersion(ifMatchVersion, userProfile.getVersion());
         userProfile.getInstruments().remove(instrument);
         return UserProfileMapper.toDTO(userRepo.saveAndFlush(userProfile));
@@ -308,7 +309,7 @@ public class UserServiceImpl implements UserService {
     public void updateMyPassword(String iamId, String newPassword) {
         // Verificar que el usuario existe en la base de datos local
         userRepo.findByIamId(iamId)
-                .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el IAM ID " + iamId + "."));
 
         // Actualizar la contraseña en Identity
         try {
@@ -317,7 +318,8 @@ public class UserServiceImpl implements UserService {
             // Propagar FeignException para que el handler lo traduzca según el upstream
             throw fe;
         } catch (Exception e) {
-            throw new BadRequestException("Failed to update password in identity provider. Cause: " + e.getMessage());
+            logger.error("Failed to update password in identity provider for IAM ID {}: {}", iamId, e.getMessage(), e);
+            throw new BadRequestException("No se ha podido actualizar la contraseña en el proveedor de identidad.");
         }
     }
 
@@ -326,7 +328,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO updateMyProfile(String iamId, MyProfileUpdateRequestDTO dto) {
         // Buscar el usuario por iamId
         UserProfileEntity userProfile = userRepo.findByIamId(iamId)
-                .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el IAM ID " + iamId + "."));
 
         if (dto.firstName() != null) userProfile.setFirstName(dto.firstName());
         if (dto.lastName() != null) userProfile.setLastName(dto.lastName());
@@ -340,7 +342,7 @@ public class UserServiceImpl implements UserService {
 
     private UserProfileEntity findUserOrThrow(Long userId) {
         return userRepo.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found with userId " + userId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el ID " + userId + "."));
     }
 
 }

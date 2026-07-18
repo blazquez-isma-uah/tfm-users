@@ -16,17 +16,17 @@ public final class EtagUtils {
   // Acepta W/"n" o "n"
   public static int parseIfMatchToVersion(String ifMatch) {
     if (ifMatch == null || ifMatch.isBlank())
-      throw new PreconditionRequiredException("If-Match header is required");
+      throw new PreconditionRequiredException("La cabecera If-Match es obligatoria.");
     String v = ifMatch.trim();
     if ("*".equals(v)) {
-      throw new IllegalArgumentException("If-Match * not allowed for this operation");
+      throw new IllegalArgumentException("El valor If-Match '*' no está permitido para esta operación.");
     }
     if (v.startsWith("W/")) v = v.substring(2).trim();
     if (v.startsWith("\"") && v.endsWith("\"")) v = v.substring(1, v.length()-1);
     try {
       return Integer.parseInt(v);
     } catch (NumberFormatException e) {
-      throw new IllegalArgumentException("Invalid If-Match value: " + ifMatch);
+      throw new IllegalArgumentException("El valor de If-Match '" + ifMatch + "' no es válido.");
     }
   }
 
@@ -37,7 +37,7 @@ public final class EtagUtils {
   public static void compareVersion(int ifMatchVersion, int entityVersion) {
     // If-Match contra @Version
     if (entityVersion != ifMatchVersion) {
-      throw new PreconditionFailedException("ETag mismatch. Current version is " + entityVersion + ", expected " + ifMatchVersion);
+      throw new PreconditionFailedException("La versión del recurso ha cambiado (ETag no coincide). Versión actual: " + entityVersion + ", versión esperada: " + ifMatchVersion + ".");
     }
   }
 }

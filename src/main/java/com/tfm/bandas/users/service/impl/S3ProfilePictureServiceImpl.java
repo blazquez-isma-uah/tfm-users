@@ -60,7 +60,7 @@ public class S3ProfilePictureServiceImpl implements ProfilePictureService {
     @Transactional
     public void confirmUpload(String iamId) {
         UserProfileEntity user = userRepo.findByIamId(iamId)
-                .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el IAM ID " + iamId + "."));
 
         // Referencia estable (no firmada). No es accesible directamente -el bucket
         // es privado- pero identifica sin ambigüedad qué objeto S3 corresponde
@@ -72,7 +72,7 @@ public class S3ProfilePictureServiceImpl implements ProfilePictureService {
     @Override
     public Optional<String> generateDownloadUrl(String iamId) {
         UserProfileEntity user = userRepo.findByIamId(iamId)
-                .orElseThrow(() -> new NotFoundException("User not found with IAM ID: " + iamId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el IAM ID " + iamId + "."));
 
         if (user.getProfilePictureUrl() == null) {
             return Optional.empty();

@@ -10,9 +10,9 @@ import java.time.LocalDate;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record UserUpdateRequestDTO(
-        @JsonProperty("email") @NotBlank @Email String email,
-        @JsonProperty("firstName") @NotBlank String firstName,
-        @JsonProperty("lastName") @NotBlank String lastName,
+        @JsonProperty("email") @NotBlank(message = "El email es obligatorio.") @Email(message = "El email no tiene un formato válido.") String email,
+        @JsonProperty("firstName") @NotBlank(message = "El nombre es obligatorio.") String firstName,
+        @JsonProperty("lastName") @NotBlank(message = "El primer apellido es obligatorio.") String lastName,
         @JsonProperty("secondLastName") String secondLastName,
         @JsonProperty("birthDate") LocalDate birthDate,
         @JsonProperty("bandJoinDate") LocalDate bandJoinDate,

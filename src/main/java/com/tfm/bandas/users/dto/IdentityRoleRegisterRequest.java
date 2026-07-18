@@ -6,6 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record IdentityRoleRegisterRequest(
-    @NotBlank @JsonProperty("name") String name,
+    @NotBlank(message = "El nombre del rol es obligatorio.") @JsonProperty("name") String name,
     @JsonProperty("description") String description
 ) {}

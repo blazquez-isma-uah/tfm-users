@@ -5,6 +5,7 @@ import com.tfm.bandas.users.dto.IdentityRoleRegisterRequest;
 import com.tfm.bandas.users.dto.IdentityRoleResponse;
 import com.tfm.bandas.users.dto.UserDTO;
 import com.tfm.bandas.users.dto.mapper.UserProfileMapper;
+import com.tfm.bandas.users.exception.BadRequestException;
 import com.tfm.bandas.users.exception.NotFoundException;
 import com.tfm.bandas.users.model.entity.UserProfileEntity;
 import com.tfm.bandas.users.model.repository.UserRepository;
@@ -56,17 +57,25 @@ public class RoleServiceImpl implements RoleService {
     @Override
     @Transactional(readOnly = true)
     public List<IdentityRoleResponse> listUserRoles(String userId) {
-        String iamId = userRepo.findById(Long.parseLong(userId))
-                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId))
+        String iamId = userRepo.findById(parseUserId(userId))
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el ID " + userId + "."))
                 .getIamId();
         return identityFeignClient.listUserRoles(iamId);
+    }
+
+    private Long parseUserId(String userId) {
+        try {
+            return Long.parseLong(userId);
+        } catch (NumberFormatException e) {
+            throw new BadRequestException("El ID de usuario '" + userId + "' no es válido.");
+        }
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<IdentityRoleResponse> listUserRolesByUsername(String username) {
         String iamId = userRepo.findByUsername(username)
-                .orElseThrow(() -> new NotFoundException("User not found with username: " + username))
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el nombre de usuario " + username + "."))
                 .getIamId();
         return identityFeignClient.listUserRoles(iamId);
     }
@@ -75,7 +84,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     public UserDTO assignRoleToUser(Long userId, String roleName, int ifMatchVersion) {
         UserProfileEntity user = userRepo.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el ID " + userId + "."));
         compareVersion(ifMatchVersion, user.getVersion());
 
         identityFeignClient.assignRoleToUser(user.getIamId(), roleName);
@@ -103,7 +112,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     public UserDTO removeRoleFromUser(Long userId, String roleName, int ifMatchVersion) {
         UserProfileEntity user = userRepo.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el ID " + userId + "."));
         compareVersion(ifMatchVersion, user.getVersion());
 
         identityFeignClient.removeRoleFromUser(user.getIamId(), roleName);
@@ -131,7 +140,7 @@ public class RoleServiceImpl implements RoleService {
     @Transactional
     public UserDTO updateUserRoles(Long userId, List<String> roleNames, int ifMatchVersion) {
         UserProfileEntity user = userRepo.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found with ID: " + userId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún usuario con el ID " + userId + "."));
         compareVersion(ifMatchVersion, user.getVersion());
         // Obtener los roles actuales del usuario
         List<IdentityRoleResponse> currentRoles = identityFeignClient.listUserRoles(user.getIamId());

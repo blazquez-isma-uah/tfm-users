@@ -37,7 +37,7 @@ public class InstrumentServiceImpl implements InstrumentService {
     public InstrumentDTO getInstrumentById(Long instrumentId) {
         return instrumentRepo.findById(instrumentId)
                 .map(InstrumentMapper::toDTO)
-                .orElseThrow(() -> new NotFoundException("Instrument not found"));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún instrumento con el ID " + instrumentId + "."));
     }
 
     @Override
@@ -51,7 +51,7 @@ public class InstrumentServiceImpl implements InstrumentService {
     @Transactional
     public InstrumentDTO updateInstrument(Long instrumentId, InstrumentRequestDTO instrumentDTO, int ifMatchVersion) {
         InstrumentEntity instrument = instrumentRepo.findById(instrumentId)
-                .orElseThrow(() -> new NotFoundException("Instrument not found: " + instrumentId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún instrumento con el ID " + instrumentId + "."));
         compareVersion(ifMatchVersion, instrument.getVersion());
         instrument.setInstrumentName(instrumentDTO.instrumentName());
         instrument.setVoice(instrumentDTO.voice());
@@ -62,7 +62,7 @@ public class InstrumentServiceImpl implements InstrumentService {
     @Transactional
     public void deleteInstrument(Long instrumentId, int ifMatchVersion) {
         InstrumentEntity instrument = instrumentRepo.findById(instrumentId)
-                .orElseThrow(() -> new NotFoundException("Instrument not found: " + instrumentId));
+                .orElseThrow(() -> new NotFoundException("No se encontró ningún instrumento con el ID " + instrumentId + "."));
         compareVersion(ifMatchVersion, instrument.getVersion());
         // Eliminar asignaciones de usuarios antes de borrar
         userRepo.deleteInstrumentAssociationsByInstrumentId(instrumentId);

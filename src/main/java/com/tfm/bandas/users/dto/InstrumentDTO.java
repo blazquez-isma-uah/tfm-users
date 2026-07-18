@@ -10,13 +10,13 @@ public record InstrumentDTO(
         @JsonProperty("id") Long id,
         @JsonProperty("version") Integer version,
 
-        @NotBlank
-        @Size(min = 2, max = 100)
+        @NotBlank(message = "El nombre del instrumento es obligatorio.")
+        @Size(min = 2, max = 100, message = "El nombre del instrumento debe tener entre 2 y 100 caracteres.")
         @JsonProperty("instrumentName")
         String instrumentName,
 
-        @NotBlank
-        @Size(max = 50)
+        @NotBlank(message = "La voz es obligatoria.")
+        @Size(max = 50, message = "La voz no puede superar los 50 caracteres.")
         @JsonProperty("voice")
         String voice
 ) {}

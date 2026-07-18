@@ -15,9 +15,9 @@ import java.util.Set;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record IdentityUserRegisterRequest(
-        @NotBlank @JsonProperty("username") String username,
-        @JsonProperty("email") @Email String email,
-        @NotBlank @JsonProperty("password") String password,
+        @NotBlank(message = "El nombre de usuario es obligatorio.") @JsonProperty("username") String username,
+        @JsonProperty("email") @Email(message = "El email no tiene un formato válido.") String email,
+        @NotBlank(message = "La contraseña es obligatoria.") @JsonProperty("password") String password,
         @JsonProperty("roles") Set<String> roles,
         @JsonProperty("firstName") String firstName,
         @JsonProperty("lastName") String lastName

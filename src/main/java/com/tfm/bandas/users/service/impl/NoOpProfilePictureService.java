@@ -12,7 +12,7 @@ import java.util.Optional;
 public class NoOpProfilePictureService implements ProfilePictureService {
 
     private static final String MESSAGE =
-            "La gestion de fotos de perfil no esta disponible en el entorno local. "
+            "La gestión de fotos de perfil no está disponible en el entorno local. "
           + "Requiere el bucket S3 desplegado en AWS.";
 
     @Override
