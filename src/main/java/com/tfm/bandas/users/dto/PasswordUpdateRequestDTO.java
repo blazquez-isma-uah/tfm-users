@@ -12,8 +12,8 @@ import jakarta.validation.constraints.Size;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record PasswordUpdateRequestDTO(
-        @NotBlank(message = "New password is required")
-        @Size(min = 8, message = "Password must be at least 8 characters long")
+        @NotBlank(message = "La nueva contraseña es obligatoria.")
+        @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres.")
         @JsonProperty("newPassword")
         String newPassword
 ) {
