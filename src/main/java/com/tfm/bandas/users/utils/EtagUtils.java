@@ -37,7 +37,7 @@ public final class EtagUtils {
   public static void compareVersion(int ifMatchVersion, int entityVersion) {
     // If-Match contra @Version
     if (entityVersion != ifMatchVersion) {
-      throw new PreconditionFailedException("La versión del recurso ha cambiado (ETag no coincide). Versión actual: " + entityVersion + ", versión esperada: " + ifMatchVersion + ".");
+      throw new PreconditionFailedException("La versión del recurso ha cambiado. Se esperaba " + ifMatchVersion + " pero se encontró " + entityVersion + ".");
     }
   }
 }
